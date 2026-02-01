@@ -1,0 +1,62 @@
+// 股票持仓数据
+export interface Position {
+  id: string
+  symbol: string        // 股票代码，如 "600519.SH"
+  name: string          // 股票名称，如 "贵州茅台"
+  costPrice: number     // 成本价
+  quantity: number      // 持仓数量
+  currentPrice: number  // 当前价格
+  changePercent: number // 涨跌幅 (%)
+}
+
+// 股票实时行情
+export interface StockQuote {
+  symbol: string
+  name: string
+  price: number
+  change: number        // 涨跌额
+  changePercent: number // 涨跌幅 (%)
+  open: number          // 开盘价
+  high: number          // 最高价
+  low: number           // 最低价
+  volume: number        // 成交量
+  timestamp: number     // 时间戳
+}
+
+// 收益计算结果
+export interface ProfitSummary {
+  totalCost: number         // 总成本
+  totalValue: number        // 总市值
+  totalProfit: number       // 总盈亏
+  totalProfitPercent: number // 总收益率
+  positions: PositionProfit[] // 各股盈亏
+}
+
+export interface PositionProfit {
+  symbol: string
+  name: string
+  cost: number
+  value: number
+  profit: number
+  profitPercent: number
+  quantity: number
+}
+
+// 新闻条目
+export interface NewsItem {
+  id: string
+  title: string
+  source: string
+  url: string
+  publishTime: number
+  summary?: string
+  relatedSymbols: string[] // 相关股票代码
+}
+
+// 导出数据格式
+export interface ExportData {
+  version: string
+  exportTime: number
+  positions: Position[]
+  summary: ProfitSummary
+}

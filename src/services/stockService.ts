@@ -1,55 +1,78 @@
 import type { StockQuote } from '../types'
 
-// 模拟股票数据 - A股常见股票
-const mockStockData: Record<string, {
-  name: string
-  basePrice: number
-}> = {
-  '600519.SH': { name: '贵州茅台', basePrice: 1680.50 },
-  '000858.SZ': { name: '五粮液', basePrice: 142.30 },
-  '600036.SH': { name: '招商银行', basePrice: 32.15 },
-  '000001.SZ': { name: '平安银行', basePrice: 10.88 },
-  '601318.SH': { name: '中国平安', basePrice: 42.50 },
-  '000333.SZ': { name: '美的集团', basePrice: 68.20 },
-  '600276.SH': { name: '恒瑞医药', basePrice: 45.30 },
-  '300059.SZ': { name: '东方财富', basePrice: 15.60 },
-  '600900.SH': { name: '长江电力', basePrice: 24.80 },
-  '601012.SH': { name: '隆基绿能', basePrice: 22.40 },
-  '002594.SZ': { name: '比亚迪', basePrice: 258.90 },
-  '600887.SH': { name: '伊利股份', basePrice: 31.20 },
+// 东方财富API返回的数据类型
+interface EastMoneyResponse {
+  data: {
+    f43: number  // 最新价
+    f44: number  // 最高价
+    f45: number  // 最低价
+    f46: number  // 开盘价
+    f58: string  // 股票名称
+    f59?: number // 昨收价（用于计算涨跌幅）
+  } | null
 }
 
-// 模拟价格波动（基于随机波动）
-function simulatePrice(basePrice: number): { price: number; change: number; changePercent: number } {
-  const changePercent = (Math.random() - 0.5) * 10 // -5% 到 +5% 波动
-  const change = basePrice * (changePercent / 100)
-  const price = basePrice + change
-  return { price, change, changePercent }
-}
+// 将股票代码转换为东方财富API的secid格式
+// 深圳股票(SZ): 0.{code}
+// 上海股票(SH): 1.{code}
+function convertSymbolToSecId(symbol: string): string {
+  // 支持两种格式: 600519.SH 或 SH.600519
+  let code = symbol
+  let market = ''
 
-// 获取股票实时行情（模拟）
-export async function getStockQuote(symbol: string): Promise<StockQuote | null> {
-  // 模拟网络延迟
-  await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 200))
-
-  const stockInfo = mockStockData[symbol]
-  if (!stockInfo) {
-    return null
+  if (symbol.includes('.')) {
+    const [symbolCode, suffix] = symbol.split('.')
+    code = symbolCode
+    market = suffix
+  } else if (symbol.includes('SH') || symbol.includes('SZ')) {
+    const parts = symbol.split(/(SH|SZ)/)
+    code = parts[1]
+    market = parts[0]
   }
 
-  const { price, change, changePercent } = simulatePrice(stockInfo.basePrice)
+  // 上海股票: 前缀1, 深圳股票: 前缀0
+  const marketPrefix = market === 'SH' ? '1' : '0'
+  return `${marketPrefix}.${code}`
+}
 
-  return {
-    symbol,
-    name: stockInfo.name,
-    price: Number(price.toFixed(2)),
-    change: Number(change.toFixed(2)),
-    changePercent: Number(changePercent.toFixed(2)),
-    open: Number((price * (1 + (Math.random() - 0.5) * 0.02)).toFixed(2)),
-    high: Number((price * (1 + Math.random() * 0.02)).toFixed(2)),
-    low: Number((price * (1 - Math.random() * 0.02)).toFixed(2)),
-    volume: Math.floor(Math.random() * 10000000) + 100000,
-    timestamp: Date.now(),
+// 从东方财富API获取股票实时行情
+export async function getStockQuote(symbol: string): Promise<StockQuote | null> {
+  try {
+    const secId = convertSymbolToSecId(symbol)
+    const url = `https://push2.eastmoney.com/api/qt/stock/get?fltt=2&invt=2&secid=${secId}&fields=f43,f44,f45,f46,f58,f59`
+
+    const response = await fetch(url)
+    if (!response.ok) {
+      return null
+    }
+
+    const result: EastMoneyResponse = await response.json()
+
+    if (!result.data || !result.data.f58) {
+      return null
+    }
+
+    const { f43: price, f44: high, f45: low, f46: open, f58: name, f59: prevClose } = result.data
+
+    // 计算涨跌幅
+    const change = prevClose ? price - prevClose : 0
+    const changePercent = prevClose ? (change / prevClose) * 100 : 0
+
+    return {
+      symbol,
+      name,
+      price: Number(price.toFixed(2)),
+      change: Number(change.toFixed(2)),
+      changePercent: Number(changePercent.toFixed(2)),
+      open: Number(open.toFixed(2)),
+      high: Number(high.toFixed(2)),
+      low: Number(low.toFixed(2)),
+      volume: 0, // API未返回成交量数据
+      timestamp: Date.now(),
+    }
+  } catch (error) {
+    console.error(`获取股票 ${symbol} 行情失败:`, error)
+    return null
   }
 }
 
@@ -61,15 +84,13 @@ export async function getStockQuotes(symbols: string[]): Promise<StockQuote[]> {
   return quotes.filter((q): q is StockQuote => q !== null)
 }
 
-// 根据代码获取股票名称
-export function getStockName(symbol: string): string | null {
-  return mockStockData[symbol]?.name || null
+// 根据代码获取股票名称（需要调用API）
+export async function getStockName(symbol: string): Promise<string | null> {
+  const quote = await getStockQuote(symbol)
+  return quote?.name || null
 }
 
-// 获取支持的股票列表
+// 获取支持的股票列表（已废弃，请使用stockDatabase中的数据）
 export function getSupportedStocks(): Array<{ symbol: string; name: string }> {
-  return Object.entries(mockStockData).map(([symbol, info]) => ({
-    symbol,
-    name: info.name,
-  }))
+  return []
 }

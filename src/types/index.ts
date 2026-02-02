@@ -1,12 +1,28 @@
+// 交易类型
+export type TransactionType = 'buy' | 'sell'
+
+// 交易记录
+export interface Transaction {
+  id: string
+  type: TransactionType  // 买入或卖出
+  price: number          // 成交价格
+  quantity: number       // 成交数量
+  amount: number         // 成交金额
+  timestamp: number      // 交易时间戳
+}
+
 // 股票持仓数据
 export interface Position {
   id: string
   symbol: string        // 股票代码，如 "600519.SH"
   name: string          // 股票名称，如 "贵州茅台"
-  costPrice: number     // 成本价
-  quantity: number      // 持仓数量
+  costPrice: number     // 成本价（根据买卖记录动态计算）
+  quantity: number      // 当前持仓数量
   currentPrice: number  // 当前价格
   changePercent: number // 涨跌幅 (%)
+  transactions: Transaction[]  // 交易记录
+  totalBuyAmount: number  // 累计买入金额（用于计算成本）
+  totalSellAmount: number // 累计卖出金额（用于计算成本）
 }
 
 // 股票实时行情

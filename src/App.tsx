@@ -30,7 +30,14 @@ function App() {
     if (saved) {
       try {
         const savedPositions = JSON.parse(saved) as Position[]
-        setPositions(savedPositions)
+        // 迁移旧数据，添加新字段
+        const migratedPositions = savedPositions.map(pos => ({
+          ...pos,
+          transactions: pos.transactions || [],
+          totalBuyAmount: pos.totalBuyAmount ?? (pos.costPrice * pos.quantity),
+          totalSellAmount: pos.totalSellAmount ?? 0,
+        }))
+        setPositions(migratedPositions)
       } catch (e) {
         console.error('Failed to load saved positions:', e)
       }

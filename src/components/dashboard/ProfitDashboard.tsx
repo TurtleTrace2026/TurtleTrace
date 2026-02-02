@@ -18,7 +18,7 @@ export function ProfitDashboard({ summary }: ProfitDashboardProps) {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-3">
-            <CardDescription>总成本</CardDescription>
+            <CardDescription>总持仓成本</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(totalCost)}</div>
@@ -27,7 +27,7 @@ export function ProfitDashboard({ summary }: ProfitDashboardProps) {
 
         <Card>
           <CardHeader className="pb-3">
-            <CardDescription>总市值</CardDescription>
+            <CardDescription>总证券资产</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(totalValue)}</div>
@@ -74,8 +74,8 @@ export function ProfitDashboard({ summary }: ProfitDashboardProps) {
             <div className="space-y-2">
               <div className="grid grid-cols-12 gap-4 text-sm text-muted-foreground px-4 py-2">
                 <div className="col-span-3">股票</div>
-                <div className="col-span-2 text-right">成本</div>
-                <div className="col-span-2 text-right">市值</div>
+                <div className="col-span-2 text-right">持仓成本</div>
+                <div className="col-span-2 text-right">证券价值</div>
                 <div className="col-span-2 text-right">盈亏</div>
                 <div className="col-span-2 text-right">收益率</div>
                 <div className="col-span-1 text-right">占比</div>

@@ -9,6 +9,7 @@ import { calculateProfitSummary } from './utils/calculations'
 
 function App() {
   const [positions, setPositions] = useState<Position[]>([])
+  const [showClearedPositionsInOverview, setShowClearedPositionsInOverview] = useState(false)  // 总览页面是否显示已清仓股票
   const [summary, setSummary] = useState<ProfitSummary>({
     totalCost: 0,
     totalValue: 0,
@@ -18,11 +19,14 @@ function App() {
   })
   const [activeTab, setActiveTab] = useState<'overview' | 'positions' | 'news' | 'data'>('overview')
 
-  // 计算收益汇总
+  // 计算收益汇总（根据是否显示已清仓股票过滤）
   useEffect(() => {
-    const newSummary = calculateProfitSummary(positions)
+    const filteredPositions = showClearedPositionsInOverview
+      ? positions
+      : positions.filter(p => p.quantity > 0)
+    const newSummary = calculateProfitSummary(filteredPositions)
     setSummary(newSummary)
-  }, [positions])
+  }, [positions, showClearedPositionsInOverview])
 
   // 从 localStorage 加载数据
   useEffect(() => {
@@ -111,7 +115,12 @@ function App() {
       {/* 主内容区 */}
       <main className="container mx-auto px-4 py-6">
         {activeTab === 'overview' && (
-          <ProfitDashboard summary={summary} />
+          <ProfitDashboard
+            summary={summary}
+            showClearedPositions={showClearedPositionsInOverview}
+            onToggleClearedPositions={() => setShowClearedPositionsInOverview(!showClearedPositionsInOverview)}
+            hasClearedPositions={positions.some(p => p.quantity <= 0)}
+          />
         )}
 
         {activeTab === 'positions' && (

@@ -1,15 +1,19 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
+import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
-import { TrendingUp, TrendingDown, DollarSign, PieChart } from 'lucide-react'
+import { TrendingUp, TrendingDown, DollarSign, PieChart, Eye, EyeOff } from 'lucide-react'
 import type { ProfitSummary } from '../../types'
 import { formatCurrency, formatPercent } from '../../lib/utils'
 import { getChangeBgClass } from '../../utils/calculations'
 
 interface ProfitDashboardProps {
   summary: ProfitSummary
+  showClearedPositions: boolean
+  onToggleClearedPositions: () => void
+  hasClearedPositions: boolean
 }
 
-export function ProfitDashboard({ summary }: ProfitDashboardProps) {
+export function ProfitDashboard({ summary, showClearedPositions, onToggleClearedPositions, hasClearedPositions }: ProfitDashboardProps) {
   const { totalCost, totalValue, totalProfit, totalProfitPercent, positions } = summary
 
   return (
@@ -61,8 +65,31 @@ export function ProfitDashboard({ summary }: ProfitDashboardProps) {
       {/* 持仓明细 */}
       <Card>
         <CardHeader>
-          <CardTitle>持仓明细</CardTitle>
-          <CardDescription>各股票的盈亏情况</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>持仓明细</CardTitle>
+              <CardDescription>各股票的盈亏情况</CardDescription>
+            </div>
+            {hasClearedPositions && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onToggleClearedPositions}
+              >
+                {showClearedPositions ? (
+                  <>
+                    <EyeOff className="h-4 w-4 mr-1" />
+                    隐藏已清仓
+                  </>
+                ) : (
+                  <>
+                    <Eye className="h-4 w-4 mr-1" />
+                    显示已清仓
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {positions.length === 0 ? (

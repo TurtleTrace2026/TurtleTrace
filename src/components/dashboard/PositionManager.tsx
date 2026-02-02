@@ -3,7 +3,7 @@ import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Badge } from '../ui/badge'
-import { Plus, Trash2, RefreshCw, Search, TrendingUp, TrendingDown, X, ChevronDown } from 'lucide-react'
+import { Plus, Trash2, RefreshCw, Search, TrendingUp, TrendingDown, X, ChevronDown, Eye, EyeOff } from 'lucide-react'
 import type { Position, Transaction, TransactionType } from '../../types'
 import { getStockQuote } from '../../services/stockService'
 import { searchStocks, getPopularStocks, type SearchResult } from '../../services/stockDatabase'
@@ -30,6 +30,7 @@ export function PositionManager({ positions, onPositionsChange }: PositionManage
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [showSearchResults, setShowSearchResults] = useState(false)
   const [selectedStock, setSelectedStock] = useState<SearchResult | null>(null)
+  const [showClearedPositions, setShowClearedPositions] = useState(false)  // 是否显示已清仓股票
   const searchContainerRef = useRef<HTMLDivElement>(null)
 
   // 交易弹窗状态
@@ -311,6 +312,25 @@ export function PositionManager({ positions, onPositionsChange }: PositionManage
                 <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                 刷新价格
               </Button>
+              {positions.some(p => p.quantity <= 0) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowClearedPositions(!showClearedPositions)}
+                >
+                  {showClearedPositions ? (
+                    <>
+                      <EyeOff className="h-4 w-4 mr-1" />
+                      隐藏已清仓
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="h-4 w-4 mr-1" />
+                      显示已清仓
+                    </>
+                  )}
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -414,14 +434,18 @@ export function PositionManager({ positions, onPositionsChange }: PositionManage
             </div>
           )}
 
-          {positions.length === 0 ? (
+          {positions.filter(p => showClearedPositions || p.quantity > 0).length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
-              <p>暂无持仓数据</p>
-              <p className="text-sm mt-2">点击上方"添加持仓"按钮添加您的第一只股票</p>
+              <p>{showClearedPositions ? '暂无持仓记录' : '暂无持仓数据'}</p>
+              <p className="text-sm mt-2">
+                {showClearedPositions
+                  ? '点击上方"添加持仓"按钮添加您的第一只股票'
+                  : '所有股票已清仓，点击"显示已清仓"查看历史记录'}
+              </p>
             </div>
           ) : (
             <div className="space-y-4">
-              {positions.map(position => {
+              {positions.filter(p => showClearedPositions || p.quantity > 0).map(position => {
                 const summary = getTransactionSummary(position)
                 const isExpanded = expandedTransactions.has(position.id)
 
@@ -605,6 +629,17 @@ export function PositionManager({ positions, onPositionsChange }: PositionManage
                 <label className="text-sm text-muted-foreground">
                   {tradeDialog.type === 'buy' ? '买入' : '卖出'}数量
                 </label>
+                {tradeDialog.type === 'sell' && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setTradeQuantity(tradeDialog.position?.quantity.toString() || '')}
+                    className="w-full mb-2"
+                  >
+                    清仓（全部卖出 {tradeDialog.position?.quantity}股）
+                  </Button>
+                )}
                 <Input
                   type="number"
                   step="100"

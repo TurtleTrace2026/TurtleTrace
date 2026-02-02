@@ -1,6 +1,20 @@
 // 交易类型
 export type TransactionType = 'buy' | 'sell'
 
+// 交易情绪标签
+export interface EmotionTag {
+  id: string
+  name: string
+  color: string
+}
+
+// 交易原因标签
+export interface ReasonTag {
+  id: string
+  name: string
+  color: string
+}
+
 // 交易记录
 export interface Transaction {
   id: string
@@ -9,6 +23,8 @@ export interface Transaction {
   quantity: number       // 成交数量
   amount: number         // 成交金额
   timestamp: number      // 交易时间戳
+  emotion?: EmotionTag   // 情绪标签（单选）
+  reasons?: ReasonTag[]  // 交易原因（多选）
 }
 
 // 股票持仓数据

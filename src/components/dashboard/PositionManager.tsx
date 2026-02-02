@@ -3,10 +3,38 @@ import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Badge } from '../ui/badge'
-import { Plus, Trash2, RefreshCw, Search, TrendingUp, TrendingDown, X, ChevronDown, Eye, EyeOff } from 'lucide-react'
-import type { Position, Transaction, TransactionType } from '../../types'
+import {
+  Plus,
+  Trash2,
+  RefreshCw,
+  Search,
+  TrendingUp,
+  TrendingDown,
+  X,
+  ChevronDown,
+  Eye,
+  EyeOff,
+  Tag as TagIcon,
+  Check,
+  Sparkles,
+} from 'lucide-react'
+import type {
+  Position,
+  Transaction,
+  TransactionType,
+  EmotionTag,
+  ReasonTag,
+} from '../../types'
 import { getStockQuote } from '../../services/stockService'
 import { searchStocks, getPopularStocks, type SearchResult } from '../../services/stockDatabase'
+import {
+  getEmotionTags,
+  getReasonTags,
+  addEmotionTag,
+  addReasonTag,
+  deleteEmotionTag,
+  deleteReasonTag,
+} from '../../services/tagService'
 import { formatCurrency, formatPercent } from '../../lib/utils'
 
 interface PositionManagerProps {
@@ -15,12 +43,19 @@ interface PositionManagerProps {
 }
 
 // 计算最新成本价
-function calculateCostPrice(totalBuyAmount: number, totalSellAmount: number, quantity: number): number {
+function calculateCostPrice(
+  totalBuyAmount: number,
+  totalSellAmount: number,
+  quantity: number
+): number {
   if (quantity <= 0) return 0
   return (totalBuyAmount - totalSellAmount) / quantity
 }
 
-export function PositionManager({ positions, onPositionsChange }: PositionManagerProps) {
+export function PositionManager({
+  positions,
+  onPositionsChange,
+}: PositionManagerProps) {
   const [showAddForm, setShowAddForm] = useState(false)
   const [symbol, setSymbol] = useState('')
   const [costPrice, setCostPrice] = useState('')
@@ -30,7 +65,7 @@ export function PositionManager({ positions, onPositionsChange }: PositionManage
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [showSearchResults, setShowSearchResults] = useState(false)
   const [selectedStock, setSelectedStock] = useState<SearchResult | null>(null)
-  const [showClearedPositions, setShowClearedPositions] = useState(false)  // 是否显示已清仓股票
+  const [showClearedPositions, setShowClearedPositions] = useState(false)
   const searchContainerRef = useRef<HTMLDivElement>(null)
 
   // 交易弹窗状态
@@ -42,13 +77,42 @@ export function PositionManager({ positions, onPositionsChange }: PositionManage
   const [tradePrice, setTradePrice] = useState('')
   const [tradeQuantity, setTradeQuantity] = useState('')
 
+  // 情绪标签和交易原因状态
+  const [selectedEmotion, setSelectedEmotion] = useState<EmotionTag | null>(
+    null
+  )
+  const [selectedReasons, setSelectedReasons] = useState<Set<string>>(
+    new Set()
+  )
+
+  // 标签管理弹窗
+  const [tagManagerDialog, setTagManagerDialog] = useState<{
+    type: 'emotion' | 'reason'
+    show: boolean
+  }>({ type: 'emotion', show: false })
+  const [newTagName, setNewTagName] = useState('')
+
   // 交易历史记录展开状态
-  const [expandedTransactions, setExpandedTransactions] = useState<Set<string>>(new Set())
+  const [expandedTransactions, setExpandedTransactions] = useState<Set<string>>(
+    new Set()
+  )
+
+  // 加载标签
+  const [emotionTags, setEmotionTags] = useState<EmotionTag[]>([])
+  const [reasonTags, setReasonTags] = useState<ReasonTag[]>([])
+
+  useEffect(() => {
+    setEmotionTags(getEmotionTags())
+    setReasonTags(getReasonTags())
+  }, [])
 
   // 点击外部关闭搜索结果
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+      if (
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(event.target as Node)
+      ) {
         setShowSearchResults(false)
       }
     }
@@ -95,7 +159,7 @@ export function PositionManager({ positions, onPositionsChange }: PositionManage
     }
 
     // 检查是否已存在该股票
-    const existing = positions.find(p => p.symbol === symbol)
+    const existing = positions.find((p) => p.symbol === symbol)
     if (existing) {
       setError('该股票已在持仓列表中，请使用买入功能加仓')
       return
@@ -116,6 +180,10 @@ export function PositionManager({ positions, onPositionsChange }: PositionManage
       quantity: qty,
       amount: buyAmount,
       timestamp: Date.now(),
+      emotion: selectedEmotion || undefined,
+      reasons: selectedReasons.size > 0
+        ? reasonTags.filter((r) => selectedReasons.has(r.id))
+        : undefined,
     }
 
     const newPosition: Position = {
@@ -125,7 +193,8 @@ export function PositionManager({ positions, onPositionsChange }: PositionManage
       costPrice: cost,
       quantity: qty,
       currentPrice: quote.price,
-      changePercent: cost > 0 ? ((quote.price - cost) / cost) * 100 : 0, // 基于成本价计算涨跌幅
+      changePercent:
+        cost > 0 ? ((quote.price - cost) / cost) * 100 : 0, // 基于成本价计算涨跌幅
       transactions: [transaction],
       totalBuyAmount: buyAmount,
       totalSellAmount: 0,
@@ -139,18 +208,25 @@ export function PositionManager({ positions, onPositionsChange }: PositionManage
     setQuantity('')
     setSelectedStock(null)
     setShowAddForm(false)
+    setSelectedEmotion(null)
+    setSelectedReasons(new Set())
   }
 
   // 删除持仓
   const handleDeletePosition = (id: string) => {
-    onPositionsChange(positions.filter(p => p.id !== id))
+    onPositionsChange(positions.filter((p) => p.id !== id))
   }
 
   // 打开交易弹窗
-  const handleOpenTradeDialog = (position: Position, type: TransactionType) => {
+  const handleOpenTradeDialog = (
+    position: Position,
+    type: TransactionType
+  ) => {
     setTradeDialog({ position, type, show: true })
     setTradePrice('')
     setTradeQuantity('')
+    setSelectedEmotion(null)
+    setSelectedReasons(new Set())
     setError('')
   }
 
@@ -159,6 +235,8 @@ export function PositionManager({ positions, onPositionsChange }: PositionManage
     setTradeDialog({ position: null, type: 'buy', show: false })
     setTradePrice('')
     setTradeQuantity('')
+    setSelectedEmotion(null)
+    setSelectedReasons(new Set())
     setError('')
   }
 
@@ -191,17 +269,27 @@ export function PositionManager({ positions, onPositionsChange }: PositionManage
       quantity: qty,
       amount,
       timestamp: Date.now(),
+      emotion: selectedEmotion || undefined,
+      reasons: selectedReasons.size > 0
+        ? reasonTags.filter((r) => selectedReasons.has(r.id))
+        : undefined,
     }
 
     // 更新持仓数据
-    const updatedPositions = positions.map(p => {
+    const updatedPositions = positions.map((p) => {
       if (p.id !== position.id) return p
 
       const newTransactions = [...p.transactions, transaction]
-      const newTotalBuyAmount = type === 'buy' ? p.totalBuyAmount + amount : p.totalBuyAmount
-      const newTotalSellAmount = type === 'sell' ? p.totalSellAmount + amount : p.totalSellAmount
+      const newTotalBuyAmount =
+        type === 'buy' ? p.totalBuyAmount + amount : p.totalBuyAmount
+      const newTotalSellAmount =
+        type === 'sell' ? p.totalSellAmount + amount : p.totalSellAmount
       const newQuantity = type === 'buy' ? p.quantity + qty : p.quantity - qty
-      const newCostPrice = calculateCostPrice(newTotalBuyAmount, newTotalSellAmount, newQuantity)
+      const newCostPrice = calculateCostPrice(
+        newTotalBuyAmount,
+        newTotalSellAmount,
+        newQuantity
+      )
 
       return {
         ...p,
@@ -213,8 +301,6 @@ export function PositionManager({ positions, onPositionsChange }: PositionManage
       }
     })
 
-    // 如果卖出后数量为0，可以选择删除该持仓或保留记录
-    // 这里保留记录，用户可以手动删除
     onPositionsChange(updatedPositions)
     handleCloseTradeDialog()
   }
@@ -228,9 +314,10 @@ export function PositionManager({ positions, onPositionsChange }: PositionManage
           const quote = await getStockQuote(pos.symbol)
           if (quote) {
             // 基于最新成本价计算涨跌幅
-            const changePercent = pos.costPrice > 0
-              ? ((quote.price - pos.costPrice) / pos.costPrice) * 100
-              : 0
+            const changePercent =
+              pos.costPrice > 0
+                ? ((quote.price - pos.costPrice) / pos.costPrice) * 100
+                : 0
             return {
               ...pos,
               currentPrice: quote.price,
@@ -255,11 +342,13 @@ export function PositionManager({ positions, onPositionsChange }: PositionManage
     setCostPrice('')
     setQuantity('')
     setSelectedStock(null)
+    setSelectedEmotion(null)
+    setSelectedReasons(new Set())
   }
 
   // 切换交易历史展开状态
   const toggleTransactions = (positionId: string) => {
-    setExpandedTransactions(prev => {
+    setExpandedTransactions((prev) => {
       const newSet = new Set(prev)
       if (newSet.has(positionId)) {
         newSet.delete(positionId)
@@ -273,13 +362,19 @@ export function PositionManager({ positions, onPositionsChange }: PositionManage
   // 计算交易汇总
   const getTransactionSummary = (position: Position) => {
     const transactions = position.transactions || []
-    const buyTransactions = transactions.filter(t => t.type === 'buy')
-    const sellTransactions = transactions.filter(t => t.type === 'sell')
+    const buyTransactions = transactions.filter((t) => t.type === 'buy')
+    const sellTransactions = transactions.filter((t) => t.type === 'sell')
 
     const totalBuyQty = buyTransactions.reduce((sum, t) => sum + t.quantity, 0)
-    const totalSellQty = sellTransactions.reduce((sum, t) => sum + t.quantity, 0)
+    const totalSellQty = sellTransactions.reduce(
+      (sum, t) => sum + t.quantity,
+      0
+    )
     const totalBuyAmount = buyTransactions.reduce((sum, t) => sum + t.amount, 0)
-    const totalSellAmount = sellTransactions.reduce((sum, t) => sum + t.amount, 0)
+    const totalSellAmount = sellTransactions.reduce(
+      (sum, t) => sum + t.amount,
+      0
+    )
 
     return {
       totalBuyQty,
@@ -289,6 +384,45 @@ export function PositionManager({ positions, onPositionsChange }: PositionManage
       buyCount: buyTransactions.length,
       sellCount: sellTransactions.length,
     }
+  }
+
+  // 添加新标签
+  const handleAddTag = () => {
+    if (!newTagName.trim()) return
+
+    if (tagManagerDialog.type === 'emotion') {
+      const newTag = addEmotionTag(newTagName.trim())
+      setEmotionTags([...emotionTags, newTag])
+    } else {
+      const newTag = addReasonTag(newTagName.trim())
+      setReasonTags([...reasonTags, newTag])
+    }
+
+    setNewTagName('')
+  }
+
+  // 删除标签
+  const handleDeleteTag = (id: string) => {
+    if (tagManagerDialog.type === 'emotion') {
+      deleteEmotionTag(id)
+      setEmotionTags(emotionTags.filter((t) => t.id !== id))
+    } else {
+      deleteReasonTag(id)
+      setReasonTags(reasonTags.filter((t) => t.id !== id))
+    }
+  }
+
+  // 切换交易原因选择
+  const toggleReason = (reasonId: string) => {
+    setSelectedReasons((prev) => {
+      const newSet = new Set(prev)
+      if (newSet.has(reasonId)) {
+        newSet.delete(reasonId)
+      } else {
+        newSet.add(reasonId)
+      }
+      return newSet
+    })
   }
 
   return (
@@ -309,10 +443,12 @@ export function PositionManager({ positions, onPositionsChange }: PositionManage
                 onClick={handleRefreshPrices}
                 disabled={isRefreshing || positions.length === 0}
               >
-                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw
+                  className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}
+                />
                 刷新价格
               </Button>
-              {positions.some(p => p.quantity <= 0) && (
+              {positions.some((p) => p.quantity <= 0) && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -334,6 +470,16 @@ export function PositionManager({ positions, onPositionsChange }: PositionManage
               <Button
                 variant="outline"
                 size="sm"
+                onClick={() => {
+                  setTagManagerDialog({ type: 'emotion', show: true })
+                }}
+              >
+                <TagIcon className="h-4 w-4 mr-1" />
+                标签设置
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setShowAddForm(!showAddForm)}
               >
                 <Plus className="h-4 w-4" />
@@ -349,7 +495,9 @@ export function PositionManager({ positions, onPositionsChange }: PositionManage
 
               {/* 股票搜索 */}
               <div className="space-y-2" ref={searchContainerRef}>
-                <label className="text-sm text-muted-foreground">股票代码/名称</label>
+                <label className="text-sm text-muted-foreground">
+                  股票代码/名称
+                </label>
                 <div className="relative">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -390,7 +538,8 @@ export function PositionManager({ positions, onPositionsChange }: PositionManage
 
                 {selectedStock && (
                   <div className="text-xs text-muted-foreground bg-background p-2 rounded border">
-                    已选择: <span className="font-medium">{selectedStock.name}</span>
+                    已选择:{' '}
+                    <span className="font-medium">{selectedStock.name}</span>
                     ({selectedStock.ts_code}) · {selectedStock.industry}
                   </div>
                 )}
@@ -398,7 +547,9 @@ export function PositionManager({ positions, onPositionsChange }: PositionManage
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm text-muted-foreground">买入价格</label>
+                  <label className="text-sm text-muted-foreground">
+                    买入价格
+                  </label>
                   <Input
                     type="number"
                     step="0.01"
@@ -408,7 +559,9 @@ export function PositionManager({ positions, onPositionsChange }: PositionManage
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm text-muted-foreground">买入数量</label>
+                  <label className="text-sm text-muted-foreground">
+                    买入数量
+                  </label>
                   <Input
                     type="number"
                     step="100"
@@ -419,11 +572,70 @@ export function PositionManager({ positions, onPositionsChange }: PositionManage
                 </div>
               </div>
 
-              {error && (
-                <div className="text-sm text-destructive">
-                  {error}
+              {/* 情绪标签选择 */}
+              <div className="space-y-2">
+                <label className="text-sm text-muted-foreground">
+                  情绪标签（可选）
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedEmotion(null)}
+                    className={
+                      !selectedEmotion
+                        ? 'border-primary bg-primary/10'
+                        : ''
+                    }
+                  >
+                    无
+                  </Button>
+                  {emotionTags.map((emotion) => (
+                    <Button
+                      key={emotion.id}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedEmotion(emotion)}
+                      className={
+                        selectedEmotion?.id === emotion.id
+                          ? 'border-primary bg-primary/10'
+                          : ''
+                      }
+                    >
+                      {emotion.name}
+                    </Button>
+                  ))}
                 </div>
-              )}
+              </div>
+
+              {/* 交易原因选择 */}
+              <div className="space-y-2">
+                <label className="text-sm text-muted-foreground">
+                  交易原因（多选）
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {reasonTags.map((reason) => (
+                    <Button
+                      key={reason.id}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toggleReason(reason.id)}
+                      className={
+                        selectedReasons.has(reason.id)
+                          ? 'border-primary bg-primary/10'
+                          : ''
+                      }
+                    >
+                      {selectedReasons.has(reason.id) && (
+                        <Check className="h-3 w-3 mr-1" />
+                      )}
+                      {reason.name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {error && <div className="text-sm text-destructive">{error}</div>}
 
               <div className="flex gap-2">
                 <Button onClick={handleAddPosition}>确认添加</Button>
@@ -434,9 +646,13 @@ export function PositionManager({ positions, onPositionsChange }: PositionManage
             </div>
           )}
 
-          {positions.filter(p => showClearedPositions || p.quantity > 0).length === 0 ? (
+          {positions.filter(
+            (p) => showClearedPositions || p.quantity > 0
+          ).length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
-              <p>{showClearedPositions ? '暂无持仓记录' : '暂无持仓数据'}</p>
+              <p>
+                {showClearedPositions ? '暂无持仓记录' : '暂无持仓数据'}
+              </p>
               <p className="text-sm mt-2">
                 {showClearedPositions
                   ? '点击上方"添加持仓"按钮添加您的第一只股票'
@@ -445,146 +661,260 @@ export function PositionManager({ positions, onPositionsChange }: PositionManage
             </div>
           ) : (
             <div className="space-y-4">
-              {positions.filter(p => showClearedPositions || p.quantity > 0).map(position => {
-                const summary = getTransactionSummary(position)
-                const isExpanded = expandedTransactions.has(position.id)
+              {positions
+                .filter((p) => showClearedPositions || p.quantity > 0)
+                .map((position) => {
+                  const summary = getTransactionSummary(position)
+                  const isExpanded = expandedTransactions.has(position.id)
 
-                return (
-                  <div key={position.id} className="border rounded-lg overflow-hidden">
-                    {/* 持仓头部 */}
-                    <div className="p-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-medium text-lg">{position.name}</div>
-                          <div className="text-sm text-muted-foreground">{position.symbol}</div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleOpenTradeDialog(position, 'buy')}
-                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                          >
-                            <TrendingUp className="h-4 w-4 mr-1" />
-                            买入
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleOpenTradeDialog(position, 'sell')}
-                            disabled={position.quantity <= 0}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <TrendingDown className="h-4 w-4 mr-1" />
-                            卖出
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeletePosition(position.id)}
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-
-                      {/* 持仓信息网格 */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                        <div>
-                          <div className="text-muted-foreground">持仓数量</div>
-                          <div className="font-medium">{position.quantity}</div>
-                        </div>
-                        <div>
-                          <div className="text-muted-foreground">最新成本</div>
-                          <div className="font-medium">{formatCurrency(position.costPrice)}</div>
-                        </div>
-                        <div>
-                          <div className="text-muted-foreground">当前价格</div>
-                          <div className="font-medium">{formatCurrency(position.currentPrice)}</div>
-                        </div>
-                        <div>
-                          <div className="text-muted-foreground">涨跌幅</div>
-                          <Badge
-                            variant={position.changePercent >= 0 ? 'success' : 'danger'}
-                          >
-                            {formatPercent(position.changePercent)}
-                          </Badge>
-                        </div>
-                      </div>
-
-                      {/* 市值和盈亏 */}
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm pt-2 border-t">
-                        <div>
-                          <div className="text-muted-foreground">持仓市值</div>
-                          <div className="font-medium">{formatCurrency(position.currentPrice * position.quantity)}</div>
-                        </div>
-                        <div>
-                          <div className="text-muted-foreground">持仓成本</div>
-                          <div className="font-medium">{formatCurrency(position.costPrice * position.quantity)}</div>
-                        </div>
-                        <div>
-                          <div className="text-muted-foreground">浮动盈亏</div>
-                          <div className={`font-medium ${(position.currentPrice - position.costPrice) * position.quantity >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {formatCurrency((position.currentPrice - position.costPrice) * position.quantity)}
-                            <span className="ml-2">
-                              {formatPercent(((position.currentPrice - position.costPrice) / position.costPrice) * 100)}
-                            </span>
+                  return (
+                    <div
+                      key={position.id}
+                      className="border rounded-lg overflow-hidden"
+                    >
+                      {/* 持仓头部 */}
+                      <div className="p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-medium text-lg">
+                              {position.name}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {position.symbol}
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleOpenTradeDialog(position, 'buy')}
+                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                            >
+                              <TrendingUp className="h-4 w-4 mr-1" />
+                              买入
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                handleOpenTradeDialog(position, 'sell')
+                              }
+                              disabled={position.quantity <= 0}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <TrendingDown className="h-4 w-4 mr-1" />
+                              卖出
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeletePosition(position.id)}
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         </div>
-                      </div>
 
-                      {/* 交易汇总 */}
-                      <div className="text-xs text-muted-foreground pt-2 border-t">
-                        买入{summary.buyCount}笔 · 卖出{summary.sellCount}笔 ·
-                        累计买入 {summary.totalBuyQty}股 · 累计卖出 {summary.totalSellQty}股
-                      </div>
+                        {/* 持仓信息网格 */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div>
+                            <div className="text-muted-foreground">
+                              持仓数量
+                            </div>
+                            <div className="font-medium">
+                              {position.quantity}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">
+                              最新成本
+                            </div>
+                            <div className="font-medium">
+                              {formatCurrency(position.costPrice)}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">
+                              当前价格
+                            </div>
+                            <div className="font-medium">
+                              {formatCurrency(position.currentPrice)}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">
+                              涨跌幅
+                            </div>
+                            <Badge
+                              variant={
+                                position.changePercent >= 0
+                                  ? 'success'
+                                  : 'danger'
+                              }
+                            >
+                              {formatPercent(position.changePercent)}
+                            </Badge>
+                          </div>
+                        </div>
 
-                      {/* 展开/收起交易历史 */}
-                      {(position.transactions?.length || 0) > 0 && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => toggleTransactions(position.id)}
-                          className="w-full justify-center text-muted-foreground"
-                        >
-                          {isExpanded ? (
-                            <>收起交易记录 <ChevronDown className="h-4 w-4 ml-1 rotate-180" /></>
-                          ) : (
-                            <>查看交易记录 ({position.transactions.length}) <ChevronDown className="h-4 w-4 ml-1" /></>
-                          )}
-                        </Button>
-                      )}
-                    </div>
-
-                    {/* 交易历史 */}
-                    {isExpanded && (position.transactions?.length || 0) > 0 && (
-                      <div className="border-t bg-muted/30 p-4 space-y-2">
-                        <div className="text-sm font-medium">交易历史</div>
-                        {(position.transactions || []).slice().reverse().map(transaction => (
-                          <div key={transaction.id} className="flex items-center justify-between text-sm py-2 border-b last:border-b-0">
-                            <div className="flex items-center gap-3">
-                              <Badge
-                                variant={transaction.type === 'buy' ? 'success' : 'danger'}
-                                className="text-xs"
-                              >
-                                {transaction.type === 'buy' ? '买入' : '卖出'}
-                              </Badge>
-                              <span className="text-muted-foreground">
-                                {new Date(transaction.timestamp).toLocaleString('zh-CN')}
+                        {/* 市值和盈亏 */}
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm pt-2 border-t">
+                          <div>
+                            <div className="text-muted-foreground">
+                              持仓市值
+                            </div>
+                            <div className="font-medium">
+                              {formatCurrency(
+                                position.currentPrice * position.quantity
+                              )}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">
+                              持仓成本
+                            </div>
+                            <div className="font-medium">
+                              {formatCurrency(
+                                position.costPrice * position.quantity
+                              )}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">
+                              浮动盈亏
+                            </div>
+                            <div
+                              className={`font-medium ${
+                                (position.currentPrice - position.costPrice) *
+                                  position.quantity >= 0
+                                  ? 'text-green-600'
+                                  : 'text-red-600'
+                              }`}
+                            >
+                              {formatCurrency(
+                                (position.currentPrice - position.costPrice) *
+                                  position.quantity
+                              )}
+                              <span className="ml-2">
+                                {formatPercent(
+                                  ((position.currentPrice - position.costPrice) /
+                                    position.costPrice) *
+                                    100
+                                )}
                               </span>
                             </div>
-                            <div className="flex items-center gap-4">
-                              <span>{formatCurrency(transaction.price)} × {transaction.quantity}</span>
-                              <span className="font-medium">{formatCurrency(transaction.amount)}</span>
-                            </div>
                           </div>
-                        ))}
+                        </div>
+
+                        {/* 交易汇总 */}
+                        <div className="text-xs text-muted-foreground pt-2 border-t">
+                          买入{summary.buyCount}笔 · 卖出{summary.sellCount}
+                          笔 · 累计买入 {summary.totalBuyQty}股 · 累计卖出{' '}
+                          {summary.totalSellQty}股
+                        </div>
+
+                        {/* 展开/收起交易历史 */}
+                        {(position.transactions?.length || 0) > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleTransactions(position.id)}
+                            className="w-full justify-center text-muted-foreground"
+                          >
+                            {isExpanded ? (
+                              <>
+                                收起交易记录{' '}
+                                <ChevronDown className="h-4 w-4 ml-1 rotate-180" />
+                              </>
+                            ) : (
+                              <>
+                                查看交易记录 ({position.transactions.length}){' '}
+                                <ChevronDown className="h-4 w-4 ml-1" />
+                              </>
+                            )}
+                          </Button>
+                        )}
                       </div>
-                    )}
-                  </div>
-                )
-              })}
+
+                      {/* 交易历史 */}
+                      {isExpanded &&
+                        (position.transactions?.length || 0) > 0 && (
+                          <div className="border-t bg-muted/30 p-4 space-y-3">
+                            <div className="text-sm font-medium">交易历史</div>
+                            {(position.transactions || [])
+                              .slice()
+                              .reverse()
+                              .map((transaction) => (
+                                <div
+                                  key={transaction.id}
+                                  className="space-y-2 py-3 border-b last:border-b-0"
+                                >
+                                  <div className="flex items-center justify-between text-sm">
+                                    <div className="flex items-center gap-3">
+                                      <Badge
+                                        variant={
+                                          transaction.type === 'buy'
+                                            ? 'success'
+                                            : 'danger'
+                                        }
+                                        className="text-xs"
+                                      >
+                                        {transaction.type === 'buy'
+                                          ? '买入'
+                                          : '卖出'}
+                                      </Badge>
+                                      <span className="text-muted-foreground">
+                                        {new Date(
+                                          transaction.timestamp
+                                        ).toLocaleString('zh-CN')}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                      <span>
+                                        {formatCurrency(transaction.price)} ×{' '}
+                                        {transaction.quantity}
+                                      </span>
+                                      <span className="font-medium">
+                                        {formatCurrency(transaction.amount)}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* 情绪标签 */}
+                                  {transaction.emotion && (
+                                    <div className="flex items-center gap-2">
+                                      <Sparkles className="h-3 w-3 text-muted-foreground" />
+                                      <Badge
+                                        className={`text-xs ${transaction.emotion.color}`}
+                                      >
+                                        {transaction.emotion.name}
+                                      </Badge>
+                                    </div>
+                                  )}
+
+                                  {/* 交易原因 */}
+                                  {transaction.reasons &&
+                                    transaction.reasons.length > 0 && (
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <TagIcon className="h-3 w-3 text-muted-foreground" />
+                                        {transaction.reasons.map((reason) => (
+                                          <Badge
+                                            key={reason.id}
+                                            className={`text-xs ${reason.color}`}
+                                          >
+                                            {reason.name}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    )}
+                                </div>
+                              ))}
+                          </div>
+                        )}
+                    </div>
+                  )
+                })}
             </div>
           )}
         </CardContent>
@@ -593,11 +923,12 @@ export function PositionManager({ positions, onPositionsChange }: PositionManage
       {/* 交易弹窗 */}
       {tradeDialog.show && tradeDialog.position && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md">
+          <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>
-                  {tradeDialog.type === 'buy' ? '买入' : '卖出'} {tradeDialog.position.name}
+                  {tradeDialog.type === 'buy' ? '买入' : '卖出'}{' '}
+                  {tradeDialog.position.name}
                 </CardTitle>
                 <Button
                   variant="ghost"
@@ -608,8 +939,8 @@ export function PositionManager({ positions, onPositionsChange }: PositionManage
                 </Button>
               </div>
               <CardDescription>
-                当前持仓: {tradeDialog.position.quantity}股 ·
-                当前成本: {formatCurrency(tradeDialog.position.costPrice)}
+                当前持仓: {tradeDialog.position.quantity}股 · 当前成本:{' '}
+                {formatCurrency(tradeDialog.position.costPrice)}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -634,7 +965,11 @@ export function PositionManager({ positions, onPositionsChange }: PositionManage
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setTradeQuantity(tradeDialog.position?.quantity.toString() || '')}
+                    onClick={() =>
+                      setTradeQuantity(
+                        tradeDialog.position?.quantity.toString() || ''
+                      )
+                    }
                     className="w-full mb-2"
                   >
                     清仓（全部卖出 {tradeDialog.position?.quantity}股）
@@ -649,35 +984,121 @@ export function PositionManager({ positions, onPositionsChange }: PositionManage
                 />
               </div>
 
+              {/* 情绪标签选择 */}
+              <div className="space-y-2">
+                <label className="text-sm text-muted-foreground">
+                  情绪标签（可选）
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedEmotion(null)}
+                    className={
+                      !selectedEmotion
+                        ? 'border-primary bg-primary/10'
+                        : ''
+                    }
+                  >
+                    无
+                  </Button>
+                  {emotionTags.map((emotion) => (
+                    <Button
+                      key={emotion.id}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedEmotion(emotion)}
+                      className={
+                        selectedEmotion?.id === emotion.id
+                          ? 'border-primary bg-primary/10'
+                          : ''
+                      }
+                    >
+                      {emotion.name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 交易原因选择 */}
+              <div className="space-y-2">
+                <label className="text-sm text-muted-foreground">
+                  交易原因（多选）
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {reasonTags.map((reason) => (
+                    <Button
+                      key={reason.id}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toggleReason(reason.id)}
+                      className={
+                        selectedReasons.has(reason.id)
+                          ? 'border-primary bg-primary/10'
+                          : ''
+                      }
+                    >
+                      {selectedReasons.has(reason.id) && (
+                        <Check className="h-3 w-3 mr-1" />
+                      )}
+                      {reason.name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
               {/* 交易预览 */}
               {tradePrice && tradeQuantity && (
                 <div className="p-3 bg-muted/50 rounded-md space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">交易金额</span>
                     <span className="font-medium">
-                      {formatCurrency(parseFloat(tradePrice) * parseFloat(tradeQuantity))}
+                      {formatCurrency(
+                        parseFloat(tradePrice) * parseFloat(tradeQuantity)
+                      )}
                     </span>
                   </div>
                   {tradeDialog.type === 'buy' && (
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">交易后持仓</span>
+                      <span className="text-muted-foreground">
+                        交易后持仓
+                      </span>
                       <span className="font-medium">
-                        {tradeDialog.position.quantity + parseFloat(tradeQuantity || '0')}股
+                        {tradeDialog.position.quantity +
+                          parseFloat(tradeQuantity || '0')}
+                        股
                       </span>
                     </div>
                   )}
                   {tradeDialog.type === 'sell' && (
                     <>
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">交易后持仓</span>
+                        <span className="text-muted-foreground">
+                          交易后持仓
+                        </span>
                         <span className="font-medium">
-                          {tradeDialog.position.quantity - parseFloat(tradeQuantity || '0')}股
+                          {tradeDialog.position.quantity -
+                            parseFloat(tradeQuantity || '0')}
+                          股
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">实现盈亏</span>
-                        <span className={`font-medium ${parseFloat(tradePrice) >= tradeDialog.position.costPrice ? 'text-green-600' : 'text-red-600'}`}>
-                          {formatCurrency((parseFloat(tradePrice) - tradeDialog.position.costPrice) * parseFloat(tradeQuantity || '0'))}
+                        <span className="text-muted-foreground">
+                          实现盈亏
+                        </span>
+                        <span
+                          className={`font-medium ${
+                            parseFloat(tradePrice) >=
+                            tradeDialog.position.costPrice
+                              ? 'text-green-600'
+                              : 'text-red-600'
+                          }`}
+                        >
+                          {formatCurrency(
+                            (parseFloat(tradePrice) -
+                              tradeDialog.position.costPrice) *
+                              parseFloat(tradeQuantity || '0')
+                          )}
                         </span>
                       </div>
                     </>
@@ -686,20 +1107,138 @@ export function PositionManager({ positions, onPositionsChange }: PositionManage
               )}
 
               {error && (
-                <div className="text-sm text-destructive">
-                  {error}
-                </div>
+                <div className="text-sm text-destructive">{error}</div>
               )}
 
               <div className="flex gap-2">
                 <Button
                   onClick={handleExecuteTrade}
-                  className={tradeDialog.type === 'buy' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
+                  className={
+                    tradeDialog.type === 'buy'
+                      ? 'bg-green-600 hover:bg-green-700'
+                      : 'bg-red-600 hover:bg-red-700'
+                  }
                 >
                   确认{tradeDialog.type === 'buy' ? '买入' : '卖出'}
                 </Button>
                 <Button variant="ghost" onClick={handleCloseTradeDialog}>
                   取消
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* 标签管理弹窗 */}
+      {tagManagerDialog.show && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>
+                  {tagManagerDialog.type === 'emotion'
+                    ? '情绪标签'
+                    : '交易原因'}{' '}
+                  设置
+                </CardTitle>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    setTagManagerDialog({ type: 'emotion', show: false })
+                    setNewTagName('')
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <CardDescription>
+                {tagManagerDialog.type === 'emotion'
+                  ? '管理交易时的情绪标签'
+                  : '管理交易原因标签'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* 添加新标签 */}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="输入新标签名称"
+                  value={newTagName}
+                  onChange={(e) => setNewTagName(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      handleAddTag()
+                    }
+                  }}
+                />
+                <Button onClick={handleAddTag}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* 标签列表 */}
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {tagManagerDialog.type === 'emotion' ? (
+                  <>
+                    {emotionTags.map((tag) => (
+                      <div
+                        key={tag.id}
+                        className="flex items-center justify-between p-2 border rounded-lg"
+                      >
+                        <Badge className={tag.color}>{tag.name}</Badge>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteTag(tag.id)}
+                          className="h-8 w-8 text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  <>
+                    {reasonTags.map((tag) => (
+                      <div
+                        key={tag.id}
+                        className="flex items-center justify-between p-2 border rounded-lg"
+                      >
+                        <Badge className={tag.color}>{tag.name}</Badge>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteTag(tag.id)}
+                          className="h-8 w-8 text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </div>
+
+              {/* 切换类型 */}
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() =>
+                    setTagManagerDialog({ type: 'emotion', show: true })
+                  }
+                >
+                  情绪标签
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() =>
+                    setTagManagerDialog({ type: 'reason', show: true })
+                  }
+                >
+                  交易原因
                 </Button>
               </div>
             </CardContent>

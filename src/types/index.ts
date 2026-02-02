@@ -64,7 +64,7 @@ export interface NewsItem {
   title: string
   source: string
   url: string
-  publishTime: number
+  publishTime: string  // 原始时间字符串
   summary?: string
   relatedSymbols: string[] // 相关股票代码
 }

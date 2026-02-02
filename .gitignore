@@ -27,5 +27,3 @@ package-lock.json
 # temp data
 tmp_data
 
-# generated stock database (can be rebuilt with npm run build:stock-db)
-src/data/stock-database.json

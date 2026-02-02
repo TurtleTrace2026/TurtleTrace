@@ -129,7 +129,13 @@ TurtleTrace/
 
 ## License
 
-MIT
+Licensed under the Apache License, Version 2.0
+
+## Star History
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=TurtleTrace2026/TurtleTrace&type=date&legend=top-left)](https://www.star-history.com/#TurtleTrace2026/TurtleTrace&type=date&legend=top-left)
 
 ## 致谢
 

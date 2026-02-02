@@ -39,6 +39,25 @@ export interface StockQuote {
   timestamp: number     // 时间戳
 }
 
+// 清仓股票收益
+export interface ClearedProfit {
+  totalBuyAmount: number      // 清仓股票总买入金额
+  totalSellAmount: number     // 清仓股票总卖出金额
+  totalProfit: number         // 清仓总盈亏
+  totalProfitPercent: number  // 清仓总收益率
+  count: number               // 清仓股票数量
+  positions: ClearedPositionProfit[] // 各清仓股盈亏
+}
+
+export interface ClearedPositionProfit {
+  symbol: string
+  name: string
+  buyAmount: number      // 买入金额
+  sellAmount: number     // 卖出金额
+  profit: number         // 盈亏
+  profitPercent: number  // 收益率
+}
+
 // 收益计算结果
 export interface ProfitSummary {
   totalCost: number         // 总成本
@@ -46,6 +65,7 @@ export interface ProfitSummary {
   totalProfit: number       // 总盈亏
   totalProfitPercent: number // 总收益率
   positions: PositionProfit[] // 各股盈亏
+  clearedProfit?: ClearedProfit // 清仓股票收益
 }
 
 export interface PositionProfit {

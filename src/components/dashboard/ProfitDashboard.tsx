@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
-import { TrendingUp, TrendingDown, DollarSign, PieChart, Eye, EyeOff } from 'lucide-react'
+import { TrendingUp, TrendingDown, PieChart, Eye, EyeOff, Wallet } from 'lucide-react'
 import type { ProfitSummary } from '../../types'
 import { formatCurrency, formatPercent } from '../../lib/utils'
 import { getChangeBgClass } from '../../utils/calculations'
@@ -11,13 +11,37 @@ interface ProfitDashboardProps {
   showClearedPositions: boolean
   onToggleClearedPositions: () => void
   hasClearedPositions: boolean
+  showClearedProfitCard: boolean
+  onToggleClearedProfitCard: () => void
 }
 
-export function ProfitDashboard({ summary, showClearedPositions, onToggleClearedPositions, hasClearedPositions }: ProfitDashboardProps) {
-  const { totalCost, totalValue, totalProfit, totalProfitPercent, positions } = summary
+export function ProfitDashboard({ summary, showClearedPositions, onToggleClearedPositions, hasClearedPositions, showClearedProfitCard, onToggleClearedProfitCard }: ProfitDashboardProps) {
+  const { totalCost, totalValue, totalProfit, totalProfitPercent, positions, clearedProfit } = summary
 
   return (
     <div className="space-y-6">
+      {/* 顶部操作栏 - 清仓股票收益开关 */}
+      {clearedProfit && (
+        <div className="flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onToggleClearedProfitCard}
+          >
+            {showClearedProfitCard ? (
+              <>
+                <EyeOff className="h-4 w-4 mr-1" />
+                隐藏清仓收益
+              </>
+            ) : (
+              <>
+                <Wallet className="h-4 w-4 mr-1" />
+                显示清仓收益
+              </>
+            )}
+          </Button>
+        </div>
+      )}
       {/* 汇总卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
@@ -61,6 +85,91 @@ export function ProfitDashboard({ summary, showClearedPositions, onToggleCleared
           </CardContent>
         </Card>
       </div>
+
+      {/* 清仓股票收益卡片 */}
+      {clearedProfit && showClearedProfitCard && (
+        <Card className={clearedProfit.totalProfit >= 0 ? 'border-red-200 bg-red-50/50 dark:border-red-900 dark:bg-red-950/20' : 'border-green-200 bg-green-50/50 dark:border-green-900 dark:bg-green-950/20'}>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Wallet className="h-5 w-5" />
+                  已清仓股票收益
+                </CardTitle>
+                <CardDescription>已清仓 {clearedProfit.count} 只股票的总收益情况</CardDescription>
+              </div>
+              <div className="text-right">
+                <div className={`text-3xl font-bold ${clearedProfit.totalProfit >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                  {clearedProfit.totalProfit >= 0 ? '+' : ''}{formatCurrency(clearedProfit.totalProfit)}
+                </div>
+                <div className={`text-sm font-medium mt-1 ${getChangeBgClass(clearedProfit.totalProfitPercent)} inline-flex px-2 py-1 rounded-full`}>
+                  {formatPercent(clearedProfit.totalProfitPercent)}
+                </div>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              <div>
+                <div className="text-sm text-muted-foreground">总买入金额</div>
+                <div className="text-lg font-semibold">{formatCurrency(clearedProfit.totalBuyAmount)}</div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">总卖出金额</div>
+                <div className="text-lg font-semibold">{formatCurrency(clearedProfit.totalSellAmount)}</div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">已清仓数量</div>
+                <div className="text-lg font-semibold">{clearedProfit.count} 只</div>
+              </div>
+            </div>
+
+            {/* 清仓股票明细 */}
+            <div className="space-y-2">
+              <div className="grid grid-cols-12 gap-4 text-sm text-muted-foreground px-4 py-2">
+                <div className="col-span-3">股票</div>
+                <div className="col-span-3 text-right">买入金额</div>
+                <div className="col-span-3 text-right">卖出金额</div>
+                <div className="col-span-2 text-right">盈亏</div>
+                <div className="col-span-1 text-right">收益率</div>
+              </div>
+
+              {clearedProfit.positions
+                .sort((a, b) => b.profit - a.profit)
+                .map((position) => (
+                  <div
+                    key={position.symbol}
+                    className="grid grid-cols-12 gap-4 items-center px-4 py-3 rounded-lg hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="col-span-3">
+                      <div className="font-medium">{position.name}</div>
+                      <div className="text-sm text-muted-foreground">{position.symbol}</div>
+                    </div>
+                    <div className="col-span-3 text-right text-muted-foreground">
+                      {formatCurrency(position.buyAmount)}
+                    </div>
+                    <div className="col-span-3 text-right font-medium">
+                      {formatCurrency(position.sellAmount)}
+                    </div>
+                    <div className="col-span-2 text-right">
+                      <span className={position.profit >= 0 ? 'text-red-600' : 'text-green-600'}>
+                        {position.profit >= 0 ? '+' : ''}{formatCurrency(position.profit)}
+                      </span>
+                    </div>
+                    <div className="col-span-1 text-right">
+                      <Badge
+                        variant={position.profitPercent >= 0 ? 'success' : 'danger'}
+                        className="text-xs"
+                      >
+                        {formatPercent(position.profitPercent)}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* 持仓明细 */}
       <Card>

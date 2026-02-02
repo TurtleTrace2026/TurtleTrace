@@ -5,11 +5,12 @@ import { NewsFeed } from './components/dashboard/NewsFeed'
 import { DataExport } from './components/dashboard/DataExport'
 import { LineChart, TrendingUp, Newspaper, Database } from 'lucide-react'
 import type { Position, ProfitSummary } from './types'
-import { calculateProfitSummary } from './utils/calculations'
+import { calculateProfitSummary, calculateClearedProfit } from './utils/calculations'
 
 function App() {
   const [positions, setPositions] = useState<Position[]>([])
-  const [showClearedPositionsInOverview, setShowClearedPositionsInOverview] = useState(false)  // 总览页面是否显示已清仓股票
+  const [showClearedPositionsInOverview, setShowClearedPositionsInOverview] = useState(false)  // 总览页面持仓明细是否显示已清仓股票
+  const [showClearedProfitCard, setShowClearedProfitCard] = useState(false)  // 是否显示清仓股票收益卡片
   const [summary, setSummary] = useState<ProfitSummary>({
     totalCost: 0,
     totalValue: 0,
@@ -25,7 +26,14 @@ function App() {
       ? positions
       : positions.filter(p => p.quantity > 0)
     const newSummary = calculateProfitSummary(filteredPositions)
-    setSummary(newSummary)
+
+    // 计算清仓股票收益
+    const clearedProfit = calculateClearedProfit(positions) ?? undefined
+
+    setSummary({
+      ...newSummary,
+      clearedProfit,
+    })
   }, [positions, showClearedPositionsInOverview])
 
   // 从 localStorage 加载数据
@@ -120,6 +128,8 @@ function App() {
             showClearedPositions={showClearedPositionsInOverview}
             onToggleClearedPositions={() => setShowClearedPositionsInOverview(!showClearedPositionsInOverview)}
             hasClearedPositions={positions.some(p => p.quantity <= 0)}
+            showClearedProfitCard={showClearedProfitCard}
+            onToggleClearedProfitCard={() => setShowClearedProfitCard(!showClearedProfitCard)}
           />
         )}
 

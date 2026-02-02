@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { Button } from '../ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
-import { Download, Upload, FileSpreadsheet, FileJson } from 'lucide-react'
+import { Upload, FileSpreadsheet, FileJson } from 'lucide-react'
 import type { Position, ProfitSummary } from '../../types'
 import { exportToCSV, exportToJSON, importFromJSON } from '../../services/exportService'
 

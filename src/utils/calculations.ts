@@ -1,4 +1,4 @@
-import type { Position, ProfitSummary, PositionProfit } from '../types'
+import type { Position, ProfitSummary, PositionProfit, ClearedProfit, ClearedPositionProfit } from '../types'
 
 // 计算单个持仓的盈亏
 export function calculatePositionProfit(position: Position): PositionProfit {
@@ -60,4 +60,45 @@ export function getChangeBgClass(value: number): string {
   if (value > 0) return 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400'
   if (value < 0) return 'bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-400'
   return 'bg-muted text-muted-foreground'
+}
+
+// 计算清仓股票收益
+export function calculateClearedProfit(positions: Position[]): ClearedProfit | null {
+  const clearedPositions = positions.filter(p => p.quantity === 0)
+
+  if (clearedPositions.length === 0) {
+    return null
+  }
+
+  let totalBuyAmount = 0
+  let totalSellAmount = 0
+
+  const clearedProfits: ClearedPositionProfit[] = clearedPositions.map(pos => {
+    const profit = pos.totalSellAmount - pos.totalBuyAmount
+    const profitPercent = pos.totalBuyAmount > 0 ? (profit / pos.totalBuyAmount) * 100 : 0
+
+    totalBuyAmount += pos.totalBuyAmount
+    totalSellAmount += pos.totalSellAmount
+
+    return {
+      symbol: pos.symbol,
+      name: pos.name,
+      buyAmount: pos.totalBuyAmount,
+      sellAmount: pos.totalSellAmount,
+      profit,
+      profitPercent,
+    }
+  })
+
+  const totalProfit = totalSellAmount - totalBuyAmount
+  const totalProfitPercent = totalBuyAmount > 0 ? (totalProfit / totalBuyAmount) * 100 : 0
+
+  return {
+    totalBuyAmount,
+    totalSellAmount,
+    totalProfit,
+    totalProfitPercent,
+    count: clearedPositions.length,
+    positions: clearedProfits,
+  }
 }

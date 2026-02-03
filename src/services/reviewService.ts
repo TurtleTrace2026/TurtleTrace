@@ -365,6 +365,8 @@ class ReviewService {
 
     // 页脚
     lines.push('---');
+    lines.push('');
+    lines.push('*本复盘由 **龟迹复盘** 生成*');
     lines.push(`*复盘创建于: ${new Date(review.createdAt).toLocaleString('zh-CN')}*`);
     if (review.updatedAt !== review.createdAt) {
       lines.push(`*最后更新: ${new Date(review.updatedAt).toLocaleString('zh-CN')}*`);
@@ -389,7 +391,7 @@ class ReviewService {
       <html>
       <head>
         <meta charset="UTF-8">
-        <title>每日复盘 - ${date}</title>
+        <title>龟迹复盘 - 每日复盘 ${date}</title>
         <style>
           body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -407,6 +409,7 @@ class ReviewService {
           th { background-color: #f5f5f5; }
           code { background-color: #f4f4f4; padding: 2px 6px; border-radius: 3px; }
           hr { border: none; border-top: 1px solid #ddd; margin: 20px 0; }
+          .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #999; font-size: 0.9em; }
           @media print {
             body { font-size: 12pt; }
             h1 { page-break-before: auto; }
@@ -416,6 +419,9 @@ class ReviewService {
       </head>
       <body>
         ${this.markdownToHtml(markdown)}
+        <div class="footer">
+          <p>本复盘由 <strong>龟迹复盘</strong> 生成</p>
+        </div>
       </body>
       </html>
     `);

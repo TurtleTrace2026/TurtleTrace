@@ -129,7 +129,7 @@ export async function exportReviewsToMarkdown(): Promise<void> {
   const lines: string[] = []
 
   // 标题
-  lines.push('# 每日复盘记录\n')
+  lines.push('# 龟迹复盘 - 每日复盘记录\n')
   lines.push(`导出时间: ${new Date().toLocaleString('zh-CN')}\n`)
   lines.push(`共 ${sortedReviews.length} 条复盘记录\n`)
   lines.push('---\n\n')
@@ -143,7 +143,7 @@ export async function exportReviewsToMarkdown(): Promise<void> {
 
   const markdownContent = lines.join('')
 
-  downloadFile(markdownContent, `每日复盘_${getDateString()}.md`, 'text/markdown;charset=utf-8')
+  downloadFile(markdownContent, `龟迹复盘_每日复盘_${getDateString()}.md`, 'text/markdown;charset=utf-8')
 }
 
 // 从 JSON 导入数据

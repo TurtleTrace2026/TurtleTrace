@@ -7,6 +7,7 @@ import { ReviewTab } from './components/dashboard/review/ReviewTab'
 import { LineChart, TrendingUp, Newspaper, Database, BookOpen } from 'lucide-react'
 import type { Position, ProfitSummary } from './types'
 import { calculateProfitSummary, calculateClearedProfit } from './utils/calculations'
+import TurtleTraceLogo from './assets/TurtleTraceLogo.png'
 
 function App() {
   const [positions, setPositions] = useState<Position[]>([])
@@ -81,12 +82,20 @@ function App() {
   return (
     <div className="min-h-screen bg-background">
       {/* 顶部导航 */}
-      <header className="border-b bg-card">
+      <header className="border-b bg-card sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold">股票投资分析系统</h1>
-              <p className="text-sm text-muted-foreground">个人投资组合管理工具</p>
+            <div className="flex items-center gap-4">
+              {/* Logo */}
+              <img
+                src={TurtleTraceLogo}
+                alt="龟迹复盘"
+                className="h-10 w-auto"
+              />
+              <div>
+                <h1 className="text-2xl font-bold">龟迹复盘</h1>
+                <p className="text-sm text-muted-foreground">个人投资组合管理工具</p>
+              </div>
             </div>
             {positions.length > 0 && (
               <div className="text-right">
@@ -159,7 +168,15 @@ function App() {
 
       {/* 页脚 */}
       <footer className="border-t mt-12 py-6 text-center text-sm text-muted-foreground">
-        <p>股票投资分析系统 MVP 版本</p>
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <img
+            src={TurtleTraceLogo}
+            alt="龟迹复盘"
+            className="h-6 w-auto"
+          />
+          <span className="font-semibold">龟迹复盘</span>
+        </div>
+        <p>个人投资组合管理工具</p>
         <p className="mt-1">数据仅供参考，不构成投资建议</p>
       </footer>
     </div>

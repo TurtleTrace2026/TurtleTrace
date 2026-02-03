@@ -382,9 +382,18 @@ class ReviewService {
     const markdown = await this.exportToMarkdown(date);
     if (!markdown) return;
 
+    // 获取 logo 的 base64
+    const logoBase64 = await this.getLogoBase64();
+
     // 创建新窗口显示内容并打印
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
+
+    const logoHtml = logoBase64
+      ? `<div style="text-align: center; margin-bottom: 20px;">
+          <img src="${logoBase64}" alt="龟迹复盘" style="height: 50px; width: auto;" />
+        </div>`
+      : '';
 
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -409,6 +418,7 @@ class ReviewService {
           th { background-color: #f5f5f5; }
           code { background-color: #f4f4f4; padding: 2px 6px; border-radius: 3px; }
           hr { border: none; border-top: 1px solid #ddd; margin: 20px 0; }
+          .header { text-align: center; margin-bottom: 20px; }
           .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #999; font-size: 0.9em; }
           @media print {
             body { font-size: 12pt; }
@@ -418,6 +428,11 @@ class ReviewService {
         </style>
       </head>
       <body>
+        ${logoHtml}
+        <div class="header">
+          <h1>龟迹复盘</h1>
+          <p style="color: #666; margin-top: -10px;">每日复盘 - ${date}</p>
+        </div>
         ${this.markdownToHtml(markdown)}
         <div class="footer">
           <p>本复盘由 <strong>龟迹复盘</strong> 生成</p>
@@ -431,6 +446,24 @@ class ReviewService {
     setTimeout(() => {
       printWindow.print();
     }, 500);
+  }
+
+  /**
+   * 获取 logo 的 base64 编码
+   */
+  private async getLogoBase64(): Promise<string> {
+    try {
+      const response = await fetch('/src/assets/TurtleTraceLogo.png');
+      const blob = await response.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) {
+      console.error('Failed to load logo:', e);
+      return '';
+    }
   }
 
   /**

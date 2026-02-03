@@ -1,4 +1,11 @@
 import type { Position, ProfitSummary, ExportData } from '../types'
+import type { DailyReview } from '../types/review'
+import { reviewService } from './reviewService'
+
+// 扩展导出数据类型以包含复盘
+export interface ExtendedExportData extends ExportData {
+  reviews?: DailyReview[]
+}
 
 // 导出为 CSV
 export function exportToCSV(positions: Position[], summary: ProfitSummary): void {
@@ -69,26 +76,139 @@ export function exportToJSON(positions: Position[], summary: ProfitSummary): voi
   downloadFile(jsonContent, `持仓备份_${getDateString()}.json`, 'application/json')
 }
 
+// 导出完整数据（包含持仓和复盘）
+export async function exportCompleteData(positions: Position[], summary: ProfitSummary): Promise<void> {
+  // 获取所有复盘记录
+  const reviews = await reviewService.getAllReviews()
+
+  const data: ExtendedExportData = {
+    version: '2.0.0',
+    exportTime: Date.now(),
+    positions,
+    summary,
+    reviews,
+  }
+
+  const jsonContent = JSON.stringify(data, null, 2)
+
+  downloadFile(jsonContent, `完整数据备份_${getDateString()}.json`, 'application/json')
+}
+
+// 导出每日复盘数据（单独）
+export async function exportReviewsData(): Promise<void> {
+  const reviews = await reviewService.getAllReviews()
+
+  if (reviews.length === 0) {
+    alert('暂无复盘数据可导出')
+    return
+  }
+
+  const data = {
+    version: '1.0.0',
+    exportTime: Date.now(),
+    reviews,
+  }
+
+  const jsonContent = JSON.stringify(data, null, 2)
+
+  downloadFile(jsonContent, `每日复盘_${getDateString()}.json`, 'application/json')
+}
+
+// 导出每日复盘为 Markdown
+export async function exportReviewsToMarkdown(): Promise<void> {
+  const reviews = await reviewService.getAllReviews()
+
+  if (reviews.length === 0) {
+    alert('暂无复盘数据可导出')
+    return
+  }
+
+  // 按日期排序
+  const sortedReviews = [...reviews].sort((a, b) => b.date.localeCompare(a.date))
+
+  const lines: string[] = []
+
+  // 标题
+  lines.push('# 每日复盘记录\n')
+  lines.push(`导出时间: ${new Date().toLocaleString('zh-CN')}\n`)
+  lines.push(`共 ${sortedReviews.length} 条复盘记录\n`)
+  lines.push('---\n\n')
+
+  // 每条复盘
+  for (const review of sortedReviews) {
+    const markdown = await reviewService.exportToMarkdown(review.date)
+    lines.push(markdown)
+    lines.push('\n\n---\n\n')
+  }
+
+  const markdownContent = lines.join('')
+
+  downloadFile(markdownContent, `每日复盘_${getDateString()}.md`, 'text/markdown;charset=utf-8')
+}
+
 // 从 JSON 导入数据
 export function importFromJSON(jsonContent: string): {
   positions: Position[]
   summary?: ProfitSummary
+  reviews?: DailyReview[]
 } | null {
   try {
-    const data = JSON.parse(jsonContent) as ExportData
+    const data = JSON.parse(jsonContent) as ExportData | ExtendedExportData
 
     // 验证数据格式
     if (!data.positions || !Array.isArray(data.positions)) {
       throw new Error('Invalid data format')
     }
 
-    return {
+    const result: {
+      positions: Position[]
+      summary?: ProfitSummary
+      reviews?: DailyReview[]
+    } = {
       positions: data.positions,
       summary: data.summary,
     }
+
+    // 如果有复盘数据，也返回
+    if ('reviews' in data && Array.isArray(data.reviews)) {
+      result.reviews = data.reviews
+    }
+
+    return result
   } catch (error) {
     console.error('Failed to import JSON:', error)
     return null
+  }
+}
+
+// 导入复盘数据（单独）
+export function importReviewsData(jsonContent: string): DailyReview[] | null {
+  try {
+    const data = JSON.parse(jsonContent) as {
+      reviews?: DailyReview[]
+    }
+
+    if (!data.reviews || !Array.isArray(data.reviews)) {
+      throw new Error('Invalid reviews data format')
+    }
+
+    return data.reviews
+  } catch (error) {
+    console.error('Failed to import reviews:', error)
+    return null
+  }
+}
+
+// 保存导入的复盘数据到 localStorage
+export async function saveImportedReviews(reviews: DailyReview[]): Promise<boolean> {
+  try {
+    for (const review of reviews) {
+      await reviewService.saveReview(review)
+    }
+    return true
+  } catch (error) {
+    console.error('Failed to save reviews:', error)
+    return false
   }
 }
 

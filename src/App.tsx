@@ -3,7 +3,8 @@ import { PositionManager } from './components/dashboard/PositionManager'
 import { ProfitDashboard } from './components/dashboard/ProfitDashboard'
 import { NewsFeed } from './components/dashboard/NewsFeed'
 import { DataExport } from './components/dashboard/DataExport'
-import { LineChart, TrendingUp, Newspaper, Database } from 'lucide-react'
+import { ReviewTab } from './components/dashboard/review/ReviewTab'
+import { LineChart, TrendingUp, Newspaper, Database, BookOpen } from 'lucide-react'
 import type { Position, ProfitSummary } from './types'
 import { calculateProfitSummary, calculateClearedProfit } from './utils/calculations'
 
@@ -18,7 +19,7 @@ function App() {
     totalProfitPercent: 0,
     positions: [],
   })
-  const [activeTab, setActiveTab] = useState<'overview' | 'positions' | 'news' | 'data'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'positions' | 'news' | 'data' | 'review'>('overview')
 
   // 计算收益汇总（根据是否显示已清仓股票过滤）
   useEffect(() => {
@@ -72,6 +73,7 @@ function App() {
   const tabs = [
     { id: 'overview' as const, label: '总览', icon: LineChart },
     { id: 'positions' as const, label: '持仓管理', icon: TrendingUp },
+    { id: 'review' as const, label: '每日复盘', icon: BookOpen },
     { id: 'news' as const, label: '新闻快讯', icon: Newspaper },
     { id: 'data' as const, label: '数据管理', icon: Database },
   ]
@@ -143,6 +145,8 @@ function App() {
         {activeTab === 'news' && (
           <NewsFeed symbols={positions.map(p => p.symbol)} />
         )}
+
+        {activeTab === 'review' && <ReviewTab />}
 
         {activeTab === 'data' && (
           <DataExport

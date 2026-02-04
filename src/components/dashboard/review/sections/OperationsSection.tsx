@@ -17,7 +17,7 @@ export function OperationsSection({ data, onChange, date }: OperationsSectionPro
   // 加载本地持仓数据
   useEffect(() => {
     const loadPositions = () => {
-      const stored = localStorage.getItem('stock_app_positions');
+      const stored = localStorage.getItem('stock-positions');
       if (stored) {
         try {
           const parsed: Position[] = JSON.parse(stored);

@@ -140,6 +140,9 @@ export function MarketDataSection({ data, onChange }: MarketDataSectionProps) {
         setSelectedCodes(new Set(userSelected));
 
         setLastUpdate(Date.now());
+
+        // 保存指数数据到 review
+        saveIndicesDataToReview(indexData);
       } else {
         setError('获取数据失败');
       }
@@ -149,6 +152,33 @@ export function MarketDataSection({ data, onChange }: MarketDataSectionProps) {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // 保存指数数据到 review
+  const saveIndicesDataToReview = (indices: IndexData[]) => {
+    const currentData = data || { indices: [], keyStats: [], marketMood: 'neutral' as const };
+
+    // 根据用户选择过滤要保存的指数
+    const availableCodes = indices.map(idx => idx.rawCode);
+    const userSelected = loadUserIndexConfig(availableCodes);
+    const selectedSet = new Set(userSelected);
+
+    const displayIndices = indices.filter(idx => selectedSet.has(idx.rawCode));
+
+    // 转换为 MarketIndex 格式
+    const marketIndices = displayIndices.map(idx => ({
+      name: idx.name,
+      code: idx.code,
+      change: idx.change,
+      changeAmount: idx.changeAmount,
+      volume: idx.volume,
+      amount: idx.amount,
+    }));
+
+    onChange({
+      ...currentData,
+      indices: marketIndices,
+    } as MarketReviewData);
   };
 
   // 格式化指数代码 (将API返回的代码格式转换为标准格式)
@@ -169,21 +199,27 @@ export function MarketDataSection({ data, onChange }: MarketDataSectionProps) {
     }
     setSelectedCodes(newSelected);
     saveUserIndexConfig(Array.from(newSelected));
+    // 保存更新后的指数数据
+    saveIndicesDataToReview(allIndices);
   };
 
   // 全选/取消全选
   const toggleAll = () => {
+    let newSelected: Set<string>;
     if (selectedCodes.size === allIndices.length) {
       // 取消全选 - 只保留默认选中的
       const defaultCodes = DEFAULT_INDICES.filter(code => allIndices.some(idx => idx.rawCode === code));
-      setSelectedCodes(new Set(defaultCodes));
+      newSelected = new Set(defaultCodes);
       saveUserIndexConfig(defaultCodes);
     } else {
       // 全选
       const allCodes = allIndices.map(idx => idx.rawCode);
-      setSelectedCodes(new Set(allCodes));
+      newSelected = new Set(allCodes);
       saveUserIndexConfig(allCodes);
     }
+    setSelectedCodes(newSelected);
+    // 保存更新后的指数数据
+    saveIndicesDataToReview(allIndices);
   };
 
   // 恢复默认
@@ -191,6 +227,8 @@ export function MarketDataSection({ data, onChange }: MarketDataSectionProps) {
     const defaultCodes = DEFAULT_INDICES.filter(code => allIndices.some(idx => idx.rawCode === code));
     setSelectedCodes(new Set(defaultCodes));
     saveUserIndexConfig(defaultCodes);
+    // 保存更新后的指数数据
+    saveIndicesDataToReview(allIndices);
   };
 
   // 初始化加载数据

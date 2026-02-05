@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Trash2, Download, Edit } from 'lucide-react';
+import { Calendar, Trash2, Download, Edit, Share2 } from 'lucide-react';
 import { reviewService } from '../../../services/reviewService';
 import type { DailyReview } from '../../../types/review';
 import { ReviewCalendar } from './ReviewCalendar';
+import { ReviewShareDialog } from './ReviewShareDialog';
 
 interface ReviewViewerProps {
   onEditDate: (date: string) => void;
@@ -17,6 +18,7 @@ export function ReviewViewer({ onEditDate }: ReviewViewerProps) {
   const [selectedReview, setSelectedReview] = useState<DailyReview | null>(null);
   const [showCalendar, setShowCalendar] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [shareReview, setShareReview] = useState<DailyReview | null>(null);
 
   // 加载所有复盘记录
   useEffect(() => {
@@ -169,6 +171,13 @@ export function ReviewViewer({ onEditDate }: ReviewViewerProps) {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShareReview(selectedReview)}
+                    className="flex items-center gap-1 px-3 py-1.5 border rounded-md hover:bg-accent transition-colors text-sm"
+                  >
+                    <Share2 className="w-4 h-4" />
+                    分享
+                  </button>
                   <button
                     onClick={() => onEditDate(selectedReview.date)}
                     className="flex items-center gap-1 px-3 py-1.5 border rounded-md hover:bg-accent transition-colors text-sm"
@@ -414,6 +423,15 @@ export function ReviewViewer({ onEditDate }: ReviewViewerProps) {
           )}
         </div>
       </div>
+
+      {/* 分享对话框 */}
+      {shareReview && (
+        <ReviewShareDialog
+          review={shareReview}
+          isOpen={!!shareReview}
+          onClose={() => setShareReview(null)}
+        />
+      )}
     </div>
   );
 }

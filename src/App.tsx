@@ -96,7 +96,7 @@ function App() {
             />
             <div>
               <h1 className="text-xl font-bold">龟迹复盘</h1>
-              <p className="text-xs text-muted-foreground">个人投资组合管理</p>
+              <p className="text-xs text-muted-foreground">个人投资组合复盘</p>
             </div>
           </div>
         </div>

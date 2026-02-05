@@ -10,6 +10,9 @@ interface ShareDialogProps {
   onClose: () => void;
 }
 
+// 分享模板类型
+type ShareTemplate = 'full' | 'privacy';
+
 // 社交平台配置
 const SOCIAL_PLATFORMS = [
   {
@@ -26,14 +29,30 @@ const SOCIAL_PLATFORMS = [
     name: '朋友圈',
     icon: '💬',
     color: 'bg-green-500',
-    action: 'qrcode' // 显示二维码
+    action: 'qrcode' as const
   },
   {
     id: 'copy',
     name: '复制链接',
     icon: '🔗',
     color: 'bg-blue-500',
-    action: 'copy'
+    action: 'copy' as const
+  }
+];
+
+// 分享模板配置
+const SHARE_TEMPLATES = [
+  {
+    id: 'full' as ShareTemplate,
+    name: '完整版',
+    description: '展示全部数据',
+    icon: '📊'
+  },
+  {
+    id: 'privacy' as ShareTemplate,
+    name: '隐私版',
+    description: '隐藏金额数据',
+    icon: '🔒'
   }
 ];
 
@@ -41,6 +60,7 @@ export function ShareDialog({ summary, isOpen, onClose }: ShareDialogProps) {
   const [imageGenerated, setImageGenerated] = useState(false);
   const [copied, setCopied] = useState(false);
   const [imageUrl, setImageUrl] = useState<string>('');
+  const [selectedTemplate, setSelectedTemplate] = useState<ShareTemplate>('full');
   const shareCardRef = useRef<HTMLDivElement>(null);
 
   if (!isOpen) return null;
@@ -60,8 +80,17 @@ export function ShareDialog({ summary, isOpen, onClose }: ShareDialogProps) {
     const dateStr = `${today.getMonth() + 1}月${today.getDate()}日`;
 
     let text = `📈 ${dateStr} 我的投资收益\n\n`;
-    text += `💰 总资产：${formatCurrency(totalValue)}\n`;
-    text += `📊 今日盈亏：${totalProfit >= 0 ? '+' : ''}${formatCurrency(totalProfit)} (${formatPercent(totalProfitPercent)})\n`;
+
+    if (selectedTemplate === 'full') {
+      text += `💰 总资产：${formatCurrency(totalValue)}\n`;
+      text += `📊 今日盈亏：${totalProfit >= 0 ? '+' : ''}${formatCurrency(totalProfit)} (${formatPercent(totalProfitPercent)})\n`;
+    } else {
+      text += `📊 收益率：${formatPercent(totalProfitPercent)}\n`;
+      if (positions.length > 0) {
+        const profitCount = positions.filter(p => p.profit > 0).length;
+        text += `🎯 盈利股票：${profitCount}/${positions.length}\n`;
+      }
+    }
 
     if (positions.length > 0) {
       const bestStock = positions.sort((a, b) => b.profitPercent - a.profitPercent)[0];
@@ -70,11 +99,11 @@ export function ShareDialog({ summary, isOpen, onClose }: ShareDialogProps) {
       }
     }
 
-    if (clearedProfit) {
+    if (clearedProfit && selectedTemplate === 'full') {
       text += `✅ 已清仓收益：${clearedProfit.totalProfit >= 0 ? '+' : ''}${formatCurrency(clearedProfit.totalProfit)}\n`;
     }
 
-    text += `\n🐢 来自「龟迹复盘」——个人投资组合管理工具`;
+    text += `\n🐢 来自「龟迹复盘」——个人投资组合复盘工具`;
 
     return text;
   };
@@ -104,6 +133,13 @@ export function ShareDialog({ summary, isOpen, onClose }: ShareDialogProps) {
       // 即使图片生成失败，也允许继续分享文本
       setImageGenerated(true);
     }
+  };
+
+  // 切换模板时重置图片生成状态
+  const handleTemplateChange = (template: ShareTemplate) => {
+    setSelectedTemplate(template);
+    setImageGenerated(false);
+    setImageUrl('');
   };
 
   // 处理平台分享
@@ -161,6 +197,27 @@ export function ShareDialog({ summary, isOpen, onClose }: ShareDialogProps) {
         </div>
 
         <div className="p-6 space-y-6">
+          {/* 模板选择器 */}
+          <div className="flex justify-center">
+            <div className="inline-flex bg-muted p-1 rounded-lg">
+              {SHARE_TEMPLATES.map((template) => (
+                <button
+                  key={template.id}
+                  onClick={() => handleTemplateChange(template.id)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all ${
+                    selectedTemplate === template.id
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <span>{template.icon}</span>
+                  <span className="text-sm font-medium">{template.name}</span>
+                  <span className="text-xs text-muted-foreground hidden sm:inline">{template.description}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* 分享卡片预览 */}
           <div className="flex justify-center">
             <div
@@ -172,7 +229,7 @@ export function ShareDialog({ summary, isOpen, onClose }: ShareDialogProps) {
                 <img src={TurtleTraceLogo} alt="龟迹复盘" className="h-10 w-auto" />
                 <div>
                   <div className="font-bold text-lg">龟迹复盘</div>
-                  <div className="text-xs text-muted-foreground">个人投资组合管理</div>
+                  <div className="text-xs text-muted-foreground">个人投资组合复盘</div>
                 </div>
               </div>
 
@@ -184,28 +241,60 @@ export function ShareDialog({ summary, isOpen, onClose }: ShareDialogProps) {
                 </div>
               </div>
 
-              {/* 核心数据 */}
-              <div className="bg-white dark:bg-slate-800 rounded-xl p-4 mb-4 shadow-sm">
-                <div className="text-center mb-4">
-                  <div className="text-sm text-muted-foreground mb-1">总资产</div>
-                  <div className="text-3xl font-bold">{formatCurrency(totalValue)}</div>
-                </div>
+              {/* 核心数据 - 根据模板显示不同内容 */}
+              {selectedTemplate === 'full' ? (
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-4 mb-4 shadow-sm">
+                  <div className="text-center mb-4">
+                    <div className="text-sm text-muted-foreground mb-1">总资产</div>
+                    <div className="text-3xl font-bold">{formatCurrency(totalValue)}</div>
+                  </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center">
-                    <div className="text-xs text-muted-foreground mb-1">总盈亏</div>
-                    <div className={`text-xl font-bold ${isPositive ? 'text-red-500' : 'text-green-500'}`}>
-                      {isPositive ? '+' : ''}{formatCurrency(totalProfitWithCleared)}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center">
+                      <div className="text-xs text-muted-foreground mb-1">总盈亏</div>
+                      <div className={`text-xl font-bold ${isPositive ? 'text-red-500' : 'text-green-500'}`}>
+                        {isPositive ? '+' : ''}{formatCurrency(totalProfitWithCleared)}
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xs text-muted-foreground mb-1">收益率</div>
+                      <div className={`text-xl font-bold ${isPositive ? 'text-red-500' : 'text-green-500'}`}>
+                        {isPositive ? '+' : ''}{formatPercent(totalProfitPercentWithCleared)}
+                      </div>
                     </div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-xs text-muted-foreground mb-1">收益率</div>
-                    <div className={`text-xl font-bold ${isPositive ? 'text-red-500' : 'text-green-500'}`}>
+                </div>
+              ) : (
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-4 mb-4 shadow-sm">
+                  <div className="text-center mb-4">
+                    <div className="text-sm text-muted-foreground mb-2">收益率</div>
+                    <div className={`text-4xl font-bold ${isPositive ? 'text-red-500' : 'text-green-500'}`}>
                       {isPositive ? '+' : ''}{formatPercent(totalProfitPercentWithCleared)}
                     </div>
                   </div>
+
+                  {positions.length > 0 && (
+                    <div className="flex justify-center gap-6 mt-4 pt-4 border-t">
+                      <div className="text-center">
+                        <div className="text-xs text-muted-foreground mb-1">持仓数量</div>
+                        <div className="text-xl font-bold">{positions.length}</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-xs text-muted-foreground mb-1">盈利股票</div>
+                        <div className="text-xl font-bold text-red-500">
+                          {positions.filter(p => p.profit > 0).length}
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-xs text-muted-foreground mb-1">亏损股票</div>
+                        <div className="text-xl font-bold text-green-500">
+                          {positions.filter(p => p.profit < 0).length}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
 
               {/* 持仓概览 */}
               {positions.length > 0 && (

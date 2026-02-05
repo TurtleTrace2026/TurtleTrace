@@ -2,10 +2,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
 import { TrendingUp, TrendingDown, PieChart, Eye, EyeOff, Wallet, Share2 } from 'lucide-react'
-import type { ProfitSummary } from '../../types'
+import type { ProfitSummary, PositionProfit } from '../../types'
 import { formatCurrency, formatPercent } from '../../lib/utils'
 import { getChangeBgClass } from '../../utils/calculations'
 import { ShareDialog } from './ShareDialog'
+import { StockShareDialog } from './StockShareDialog'
 import { useState } from 'react'
 
 interface ProfitDashboardProps {
@@ -20,6 +21,7 @@ interface ProfitDashboardProps {
 export function ProfitDashboard({ summary, showClearedPositions, onToggleClearedPositions, hasClearedPositions, showClearedProfitCard, onToggleClearedProfitCard }: ProfitDashboardProps) {
   const { totalCost, totalValue, totalProfit, totalProfitPercent, positions, clearedProfit } = summary
   const [shareDialogOpen, setShareDialogOpen] = useState(false)
+  const [stockSharePosition, setStockSharePosition] = useState<PositionProfit | null>(null)
 
   return (
     <div className="space-y-6">
@@ -236,18 +238,16 @@ export function ProfitDashboard({ summary, showClearedPositions, onToggleCleared
                 <div className="col-span-2 text-right">证券价值</div>
                 <div className="col-span-2 text-right">盈亏</div>
                 <div className="col-span-2 text-right">收益率</div>
-                <div className="col-span-1 text-right">占比</div>
+                <div className="col-span-1 text-center">操作</div>
               </div>
 
               {positions
                 .sort((a, b) => b.profit - a.profit)
                 .map((position) => {
-                  const ratio = totalValue > 0 ? (position.value / totalValue) * 100 : 0
-
                   return (
                     <div
                       key={position.symbol}
-                      className="grid grid-cols-12 gap-4 items-center px-4 py-3 rounded-lg hover:bg-muted/50 transition-colors"
+                      className="grid grid-cols-12 gap-4 items-center px-4 py-3 rounded-lg hover:bg-muted/50 transition-colors group"
                     >
                       <div className="col-span-3">
                         <div className="font-medium">{position.name}</div>
@@ -272,8 +272,14 @@ export function ProfitDashboard({ summary, showClearedPositions, onToggleCleared
                           {formatPercent(position.profitPercent)}
                         </Badge>
                       </div>
-                      <div className="col-span-1 text-right text-sm text-muted-foreground">
-                        {ratio.toFixed(1)}%
+                      <div className="col-span-1 text-center">
+                        <button
+                          onClick={() => setStockSharePosition(position)}
+                          className="p-1.5 hover:bg-accent rounded-md transition-colors opacity-0 group-hover:opacity-100"
+                          title="分享"
+                        >
+                          <Share2 className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                        </button>
                       </div>
                     </div>
                   )
@@ -282,6 +288,15 @@ export function ProfitDashboard({ summary, showClearedPositions, onToggleCleared
           )}
         </CardContent>
       </Card>
+
+      {/* 个股分享对话框 */}
+      {stockSharePosition && (
+        <StockShareDialog
+          position={stockSharePosition}
+          isOpen={!!stockSharePosition}
+          onClose={() => setStockSharePosition(null)}
+        />
+      )}
     </div>
   )
 }

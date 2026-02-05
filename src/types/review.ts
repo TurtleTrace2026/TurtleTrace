@@ -134,6 +134,7 @@ export interface OperationsReviewData {
 
 export interface OperationTransaction {
   symbol: string;
+  name: string;              // 股票名称
   type: 'buy' | 'sell';
   price: number;
   quantity: number;

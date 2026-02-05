@@ -203,22 +203,58 @@ export function ReviewViewer({ onEditDate }: ReviewViewerProps) {
 
               {/* 复盘内容 */}
               <div className="p-6 space-y-6 max-h-[600px] overflow-y-auto">
-                {/* 市场情绪 */}
-                {selectedReview.marketData && (
-                  <div className="space-y-2">
+                {/* 大盘指数 */}
+                {selectedReview.marketData?.indices && selectedReview.marketData.indices.length > 0 && (
+                  <div className="space-y-3">
                     <h4 className="font-semibold flex items-center gap-2">📊 大盘指数</h4>
-                    <div className="text-sm">
-                      市场情绪: {selectedReview.marketData.marketMood === 'bullish' ? '看多📈' : selectedReview.marketData.marketMood === 'bearish' ? '看空📉' : '中性➡️'}
+
+                    {/* 指数列表 */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                      {selectedReview.marketData.indices.map((idx, index) => {
+                        const isPositive = idx.change >= 0;
+                        const isFlat = Math.abs(idx.change) < 0.01;
+
+                        return (
+                          <div
+                            key={index}
+                            className="p-3 border rounded-lg bg-accent/30"
+                          >
+                            <div className="text-xs text-muted-foreground mb-1 truncate" title={idx.name}>
+                              {idx.name}
+                            </div>
+                            <div className="text-sm mb-1">
+                              {idx.code}
+                            </div>
+                            <div className={`text-sm font-medium ${
+                              isFlat ? 'text-muted-foreground' : isPositive ? 'text-red-500' : 'text-green-500'
+                            }`}>
+                              {isFlat ? '0.00%' : `${isPositive ? '+' : ''}${idx.change.toFixed(2)}%`}
+                            </div>
+                            {idx.changeAmount !== undefined && (
+                              <div className="text-xs text-muted-foreground">
+                                {isPositive ? '+' : ''}{idx.changeAmount.toFixed(2)} 点
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-                    {selectedReview.marketData.moodNote && (
-                      <div className="text-sm text-muted-foreground">{selectedReview.marketData.moodNote}</div>
-                    )}
+
+                    {/* 市场情绪 */}
+                    <div className="pt-2 border-t">
+                      <div className="text-sm">
+                        市场情绪: {selectedReview.marketData.marketMood === 'bullish' ? '看多📈' : selectedReview.marketData.marketMood === 'bearish' ? '看空📉' : '中性➡️'}
+                      </div>
+                      {selectedReview.marketData.moodNote && (
+                        <div className="text-sm text-muted-foreground mt-1">{selectedReview.marketData.moodNote}</div>
+                      )}
+                    </div>
                   </div>
                 )}
 
                 {/* 持仓盈亏 */}
                 {selectedReview.positionData && (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <h4 className="font-semibold flex items-center gap-2">💼 持仓盈亏</h4>
                     <div className="grid grid-cols-4 gap-4 text-center p-3 bg-accent/50 rounded-lg">
                       <div>
@@ -240,31 +276,120 @@ export function ReviewViewer({ onEditDate }: ReviewViewerProps) {
                         <div className="text-lg font-bold">{(selectedReview.positionData.dailySummary.winRate * 100).toFixed(1)}%</div>
                       </div>
                     </div>
+
+                    {/* 个股明细 */}
+                    {selectedReview.positionData.positions && selectedReview.positionData.positions.length > 0 && (
+                      <div className="space-y-2">
+                        <h5 className="text-sm font-medium text-muted-foreground">个股明细</h5>
+                        <div className="space-y-2">
+                          <div className="grid grid-cols-12 gap-2 text-sm text-muted-foreground px-3">
+                            <div className="col-span-2">股票</div>
+                            <div className="col-span-1 text-right">涨跌幅</div>
+                            <div className="col-span-2 text-right">当日盈亏</div>
+                            <div className="col-span-2 text-right">总盈亏</div>
+                            <div className="col-span-1 text-right">持仓</div>
+                            <div className="col-span-2 text-right">现价/成本</div>
+                            <div className="col-span-2">备注</div>
+                          </div>
+                          {selectedReview.positionData.positions.map((pos) => {
+                            const isPositive = pos.change >= 0;
+                            const dailyProfitPositive = pos.dailyProfit >= 0;
+
+                            return (
+                              <div
+                                key={pos.symbol}
+                                className="grid grid-cols-12 gap-2 px-3 py-2 items-center border-b last:border-b-0 bg-accent/30"
+                              >
+                                <div className="col-span-2">
+                                  <div className="font-medium">{pos.name}</div>
+                                  <div className="text-xs text-muted-foreground">{pos.symbol}</div>
+                                </div>
+                                <div className={`col-span-1 text-right ${isPositive ? 'text-red-500' : 'text-green-500'}`}>
+                                  {isPositive ? '+' : ''}{pos.change.toFixed(2)}%
+                                </div>
+                                <div className={`col-span-2 text-right font-medium ${dailyProfitPositive ? 'text-red-500' : 'text-green-500'}`}>
+                                  {pos.dailyProfit >= 0 ? '+' : ''}¥{pos.dailyProfit.toFixed(2)}
+                                </div>
+                                <div className={`col-span-2 text-right text-sm ${pos.totalProfit >= 0 ? 'text-red-500' : 'text-green-500'}`}>
+                                  {pos.totalProfit >= 0 ? '+' : ''}¥{pos.totalProfit.toFixed(2)}
+                                </div>
+                                <div className="col-span-1 text-right text-sm">
+                                  {pos.quantity}
+                                </div>
+                                <div className="col-span-2 text-right text-sm">
+                                  <div>¥{pos.currentPrice.toFixed(2)}</div>
+                                  <div className="text-xs text-muted-foreground">¥{pos.costPrice.toFixed(2)}</div>
+                                </div>
+                                <div className="col-span-2 text-sm text-muted-foreground">
+                                  {pos.note || '-'}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {/* 操作反思 */}
+                {/* 今日操作回顾 */}
                 {selectedReview.operations && (
-                  <div className="space-y-2">
-                    <h4 className="font-semibold flex items-center gap-2">📝 操作反思</h4>
-                    {selectedReview.operations.reflection.whatWorked && (
-                      <div className="text-sm">
-                        <span className="text-green-600 font-medium">✓ 做得好的地方: </span>
-                        {selectedReview.operations.reflection.whatWorked}
+                  <div className="space-y-3">
+                    <h4 className="font-semibold flex items-center gap-2">📝 今日操作回顾</h4>
+
+                    {/* 交易记录 */}
+                    {selectedReview.operations.transactions && selectedReview.operations.transactions.length > 0 && (
+                      <div className="space-y-2">
+                        <h5 className="text-sm font-medium text-muted-foreground">交易记录</h5>
+                        <div className="space-y-2">
+                          {selectedReview.operations.transactions.map((tx, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center justify-between px-3 py-2 bg-accent/30 rounded-lg"
+                            >
+                              <div className="flex items-center gap-3">
+                                <span className={`px-2 py-1 text-xs font-medium rounded ${
+                                  tx.type === 'buy' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
+                                }`}>
+                                  {tx.type === 'buy' ? '买入' : '卖出'}
+                                </span>
+                                <div>
+                                  <div className="font-medium">{tx.name}</div>
+                                  <div className="text-xs text-muted-foreground">{tx.symbol}</div>
+                                </div>
+                              </div>
+                              <div className="text-right text-sm">
+                                <div>¥{tx.price.toFixed(2)} × {tx.quantity}股</div>
+                                <div className="text-muted-foreground">¥{tx.amount.toFixed(2)}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
-                    {selectedReview.operations.reflection.whatFailed && (
-                      <div className="text-sm">
-                        <span className="text-red-600 font-medium">✗ 需要改进: </span>
-                        {selectedReview.operations.reflection.whatFailed}
-                      </div>
-                    )}
-                    {selectedReview.operations.reflection.lessons && (
-                      <div className="text-sm">
-                        <span className="text-yellow-600 font-medium">💡 经验教训: </span>
-                        {selectedReview.operations.reflection.lessons}
-                      </div>
-                    )}
+
+                    {/* 操作反思 */}
+                    <div className="space-y-2 pt-2 border-t">
+                      <h5 className="text-sm font-medium text-muted-foreground">操作反思</h5>
+                      {selectedReview.operations.reflection.whatWorked && (
+                        <div className="text-sm">
+                          <span className="text-green-600 font-medium">✓ 做得好的地方: </span>
+                          {selectedReview.operations.reflection.whatWorked}
+                        </div>
+                      )}
+                      {selectedReview.operations.reflection.whatFailed && (
+                        <div className="text-sm">
+                          <span className="text-red-600 font-medium">✗ 需要改进: </span>
+                          {selectedReview.operations.reflection.whatFailed}
+                        </div>
+                      )}
+                      {selectedReview.operations.reflection.lessons && (
+                        <div className="text-sm">
+                          <span className="text-yellow-600 font-medium">💡 经验教训: </span>
+                          {selectedReview.operations.reflection.lessons}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 

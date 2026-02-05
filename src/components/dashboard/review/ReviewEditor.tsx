@@ -155,14 +155,14 @@ export function ReviewEditor({ date, existingReview, onSave }: ReviewEditorProps
             {isSaving ? '保存中...' : '保存'}
           </button>
 
-          <button
+          {/* <button
             onClick={handleExportMarkdown}
             className="flex items-center gap-2 px-4 py-2 border rounded-md hover:bg-accent transition-colors"
             title="导出为 Markdown"
           >
             <Download className="h-4 w-4" />
             MD
-          </button>
+          </button> */}
 
           <button
             onClick={handleExportPDF}

@@ -18,7 +18,7 @@ export function PositionSection({ data, onChange, date }: PositionSectionProps) 
   // 加载本地持仓数据
   useEffect(() => {
     const loadPositions = () => {
-      const data = localStorage.getItem('stock_app_positions');
+      const data = localStorage.getItem('stock-positions');
       if (data) {
         try {
           const parsed: Position[] = JSON.parse(data);
@@ -42,20 +42,63 @@ export function PositionSection({ data, onChange, date }: PositionSectionProps) 
 
   // 更新持仓数据
   const updatePositionData = async () => {
+    // 只处理未清仓的股票
+    const activePositions = positions.filter(pos => pos.quantity > 0);
+
+    if (activePositions.length === 0) {
+      onChange({
+        positions: [],
+        dailySummary: { totalProfit: 0, winCount: 0, lossCount: 0, winRate: 0 },
+        soldToday: data?.soldToday || [],
+      });
+      return;
+    }
+
     const reviewItems = await Promise.all(
-      positions.map(async (pos: any) => {
+      activePositions.map(async (pos: any) => {
         // 获取实时行情
         const quote = await getStockQuote(pos.symbol);
-        const change = quote?.changePercent || pos.changePercent || 0;
-
-        // 计算盈亏
         const currentPrice = quote?.price || pos.currentPrice || pos.costPrice;
-        const totalProfit = (currentPrice - pos.costPrice) * pos.quantity;
 
-        // 计算当日盈亏（简化计算：使用涨跌幅估算）
-        const yesterdayValue = (pos.quantity * pos.costPrice) / (1 + change / 100);
-        const todayValue = pos.quantity * currentPrice;
-        const dailyProfit = todayValue - yesterdayValue;
+        // 判断是否今天买入的
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+        // 检查是否有今天买入的交易记录
+        const hasTodayBuy = pos.transactions && pos.transactions.some((tx: any) => {
+          const txDate = new Date(tx.timestamp);
+          const txDateStr = `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, '0')}-${String(txDate.getDate()).padStart(2, '0')}`;
+          return tx.type === 'buy' && txDateStr === todayStr;
+        });
+
+        let change: number;
+        let dailyProfit: number;
+
+        if (hasTodayBuy) {
+          // 今天买入的：使用 (当前价格 - 初始价格) / 初始价格 × 100%
+          // 初始价格取今天第一次买入的价格
+          const todayBuyTransactions = pos.transactions.filter((tx: any) => {
+            const txDate = new Date(tx.timestamp);
+            const txDateStr = `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, '0')}-${String(txDate.getDate()).padStart(2, '0')}`;
+            return tx.type === 'buy' && txDateStr === todayStr;
+          }).sort((a: any, b: any) => a.timestamp - b.timestamp);
+
+          const firstBuyPrice = todayBuyTransactions[0]?.price || pos.costPrice;
+          change = firstBuyPrice > 0 ? ((currentPrice - firstBuyPrice) / firstBuyPrice) * 100 : 0;
+
+          // 当日盈亏 = (当前价 - 买入价) × 持仓数量
+          dailyProfit = (currentPrice - firstBuyPrice) * pos.quantity;
+        } else {
+          // 不是今天买入的：使用今日股票的涨跌幅（基于昨收价）
+          change = quote?.changePercent || 0;
+
+          // 当日盈亏 = 涨跌额 × 持仓数量
+          // quote.change = 当前价 - 昨收价
+          dailyProfit = (quote?.change || 0) * pos.quantity;
+        }
+
+        // 总盈亏 = (当前价 - 成本价) × 持仓数量
+        const totalProfit = (currentPrice - pos.costPrice) * pos.quantity;
 
         return {
           symbol: pos.symbol,
@@ -159,7 +202,7 @@ export function PositionSection({ data, onChange, date }: PositionSectionProps) 
         <div className="space-y-3">
           <div className="grid grid-cols-12 gap-2 text-sm text-muted-foreground px-3">
             <div className="col-span-2">股票</div>
-            <div className="col-span-1 text-right">涨跌幅</div>
+            <div className="col-span-1 text-right">当日涨跌幅</div>
             <div className="col-span-2 text-right">当日盈亏</div>
             <div className="col-span-2 text-right">总盈亏</div>
             <div className="col-span-1 text-right">持仓</div>

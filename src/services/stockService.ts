@@ -8,7 +8,7 @@ interface EastMoneyResponse {
     f45: number  // 最低价
     f46: number  // 开盘价
     f58: string  // 股票名称
-    f59?: number // 昨收价（用于计算涨跌幅）
+    f60?: number // 昨收价（用于计算涨跌幅）
   } | null
 }
 
@@ -39,7 +39,7 @@ function convertSymbolToSecId(symbol: string): string {
 export async function getStockQuote(symbol: string): Promise<StockQuote | null> {
   try {
     const secId = convertSymbolToSecId(symbol)
-    const url = `https://push2.eastmoney.com/api/qt/stock/get?fltt=2&invt=2&secid=${secId}&fields=f43,f44,f45,f46,f58,f59`
+    const url = `https://push2.eastmoney.com/api/qt/stock/get?fltt=2&invt=2&secid=${secId}&fields=f43,f44,f45,f46,f58,f60`
 
     const response = await fetch(url)
     if (!response.ok) {
@@ -52,7 +52,7 @@ export async function getStockQuote(symbol: string): Promise<StockQuote | null> 
       return null
     }
 
-    const { f43: price, f44: high, f45: low, f46: open, f58: name, f59: prevClose } = result.data
+    const { f43: price, f44: high, f45: low, f46: open, f58: name, f60: prevClose } = result.data
 
     // 计算涨跌幅
     const change = prevClose ? price - prevClose : 0

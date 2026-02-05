@@ -115,7 +115,7 @@ export function NewsFeed({ symbols: _symbols }: NewsFeedProps) {
                 <div
                   key={item.id}
                   className="group p-4 rounded-lg border transition-all hover:shadow-md cursor-pointer border-border hover:border-primary/30"
-                  onClick={() => window.open(item.url, '_blank')}
+                  onClick={() => window.open('https://kuaixun.eastmoney.com/', '_blank')}
                 >
                   {/* 标题 */}
                   <h4 className="font-medium leading-snug mb-3 group-hover:text-primary transition-colors">

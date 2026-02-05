@@ -1,10 +1,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
-import { TrendingUp, TrendingDown, PieChart, Eye, EyeOff, Wallet } from 'lucide-react'
+import { TrendingUp, TrendingDown, PieChart, Eye, EyeOff, Wallet, Share2 } from 'lucide-react'
 import type { ProfitSummary } from '../../types'
 import { formatCurrency, formatPercent } from '../../lib/utils'
 import { getChangeBgClass } from '../../utils/calculations'
+import { ShareDialog } from './ShareDialog'
+import { useState } from 'react'
 
 interface ProfitDashboardProps {
   summary: ProfitSummary
@@ -17,12 +19,25 @@ interface ProfitDashboardProps {
 
 export function ProfitDashboard({ summary, showClearedPositions, onToggleClearedPositions, hasClearedPositions, showClearedProfitCard, onToggleClearedProfitCard }: ProfitDashboardProps) {
   const { totalCost, totalValue, totalProfit, totalProfitPercent, positions, clearedProfit } = summary
+  const [shareDialogOpen, setShareDialogOpen] = useState(false)
 
   return (
     <div className="space-y-6">
-      {/* 顶部操作栏 - 清仓股票收益开关 */}
-      {clearedProfit && (
-        <div className="flex justify-end">
+      {/* 顶部操作栏 */}
+      <div className="flex justify-between items-center">
+        {/* 分享按钮 */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShareDialogOpen(true)}
+          className="flex items-center gap-2"
+        >
+          <Share2 className="h-4 w-4" />
+          分享收益
+        </Button>
+
+        {/* 清仓股票收益开关 */}
+        {clearedProfit && (
           <Button
             variant="outline"
             size="sm"
@@ -40,8 +55,15 @@ export function ProfitDashboard({ summary, showClearedPositions, onToggleCleared
               </>
             )}
           </Button>
-        </div>
-      )}
+        )}
+      </div>
+
+      {/* 分享对话框 */}
+      <ShareDialog
+        summary={summary}
+        isOpen={shareDialogOpen}
+        onClose={() => setShareDialogOpen(false)}
+      />
       {/* 汇总卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>

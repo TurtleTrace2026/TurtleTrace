@@ -158,6 +158,12 @@ export function PositionManager({
       return
     }
 
+    // 检查数量是否为100的倍数
+    if (qty % 100 !== 0) {
+      setError('持仓数量必须是100的倍数')
+      return
+    }
+
     // 检查是否已存在该股票
     const existing = positions.find((p) => p.symbol === symbol)
     if (existing) {
@@ -252,6 +258,12 @@ export function PositionManager({
 
     if (isNaN(price) || price <= 0 || isNaN(qty) || qty <= 0) {
       setError('价格和数量必须大于0')
+      return
+    }
+
+    // 检查数量是否为100的倍数
+    if (qty % 100 !== 0) {
+      setError('持仓数量必须是100的倍数')
       return
     }
 

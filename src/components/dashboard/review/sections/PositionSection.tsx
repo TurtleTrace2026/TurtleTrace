@@ -64,37 +64,54 @@ export function PositionSection({ data, onChange, date }: PositionSectionProps) 
         const today = new Date();
         const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-        // 检查是否有今天买入的交易记录
-        const hasTodayBuy = pos.transactions && pos.transactions.some((tx: any) => {
+        // 获取今日的交易记录
+        const todayTransactions = (pos.transactions || []).filter((tx: any) => {
           const txDate = new Date(tx.timestamp);
           const txDateStr = `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, '0')}-${String(txDate.getDate()).padStart(2, '0')}`;
-          return tx.type === 'buy' && txDateStr === todayStr;
+          return txDateStr === todayStr;
         });
 
-        let change: number;
-        let dailyProfit: number;
+        // 计算今日买入和卖出的数量
+        const todayBuyQty = todayTransactions
+          .filter((tx: any) => tx.type === 'buy')
+          .reduce((sum: number, tx: any) => sum + tx.quantity, 0);
 
-        if (hasTodayBuy) {
-          // 今天买入的：使用 (当前价格 - 初始价格) / 初始价格 × 100%
-          // 初始价格取今天第一次买入的价格
-          const todayBuyTransactions = pos.transactions.filter((tx: any) => {
-            const txDate = new Date(tx.timestamp);
-            const txDateStr = `${txDate.getFullYear()}-${String(txDate.getMonth() + 1).padStart(2, '0')}-${String(txDate.getDate()).padStart(2, '0')}`;
-            return tx.type === 'buy' && txDateStr === todayStr;
-          }).sort((a: any, b: any) => a.timestamp - b.timestamp);
+        const todaySellQty = todayTransactions
+          .filter((tx: any) => tx.type === 'sell')
+          .reduce((sum: number, tx: any) => sum + tx.quantity, 0);
 
-          const firstBuyPrice = todayBuyTransactions[0]?.price || pos.costPrice;
-          change = firstBuyPrice > 0 ? ((currentPrice - firstBuyPrice) / firstBuyPrice) * 100 : 0;
+        // 昨日持仓数量 = 当前持仓 + 今日卖出 - 今日买入
+        const yesterdayQty = pos.quantity + todaySellQty - todayBuyQty;
 
-          // 当日盈亏 = (当前价 - 买入价) × 持仓数量
-          dailyProfit = (currentPrice - firstBuyPrice) * pos.quantity;
-        } else {
-          // 不是今天买入的：使用今日股票的涨跌幅（基于昨收价）
-          change = quote?.changePercent || 0;
+        // 当日涨跌幅：始终使用市场数据（基于昨收价），与个人操作无关
+        const change = quote?.changePercent || 0;
 
-          // 当日盈亏 = 涨跌额 × 持仓数量
-          // quote.change = 当前价 - 昨收价
-          dailyProfit = (quote?.change || 0) * pos.quantity;
+        // 计算当日盈亏（分段计算）
+        let dailyProfit = 0;
+
+        // 1. 昨日持仓部分的浮动盈亏（基于昨收价）
+        // 浮动盈亏 = (当前价 - 昨收价) × 昨日持仓数量
+        if (yesterdayQty > 0) {
+          dailyProfit += (quote?.change || 0) * yesterdayQty;
+        }
+
+        // 2. 今日买入部分的浮动盈亏（基于买入价）
+        if (todayBuyQty > 0) {
+          const todayBuys = todayTransactions.filter((tx: any) => tx.type === 'buy');
+          todayBuys.forEach((buyTx: any) => {
+            // 买入部分的盈亏 = (当前价 - 买入价) × 买入数量
+            dailyProfit += (currentPrice - buyTx.price) * buyTx.quantity;
+          });
+        }
+
+        // 3. 今日卖出已实现盈亏（基于卖出价和昨收价）
+        if (todaySellQty > 0) {
+          const todaySells = todayTransactions.filter((tx: any) => tx.type === 'sell');
+          todaySells.forEach((sellTx: any) => {
+            // 卖出部分的已实现盈亏 = (卖出价 - 昨收价) × 卖出数量
+            const prevClosePrice = currentPrice / (1 + change / 100);
+            dailyProfit += (sellTx.price - prevClosePrice) * sellTx.quantity;
+          });
         }
 
         // 总盈亏 = (当前价 - 成本价) × 持仓数量

@@ -44,14 +44,14 @@ const SOCIAL_PLATFORMS = [
 const SHARE_TEMPLATES = [
   {
     id: 'full' as ShareTemplate,
-    name: '完整版',
-    description: '展示全部数据',
+    name: '收益额',
+    //description: '展示全部数据',
     icon: '📊'
   },
   {
     id: 'privacy' as ShareTemplate,
-    name: '隐私版',
-    description: '隐藏金额数据',
+    name: '收益率',
+    //description: '隐藏金额数据',
     icon: '🔒'
   }
 ];

@@ -7,6 +7,7 @@ import { formatCurrency, formatPercent } from '../../lib/utils'
 import { getChangeBgClass } from '../../utils/calculations'
 import { ShareDialog } from './ShareDialog'
 import { StockShareDialog } from './StockShareDialog'
+import { ClearedProfitShareDialog } from './ClearedProfitShareDialog'
 import { useState } from 'react'
 
 interface ProfitDashboardProps {
@@ -22,6 +23,7 @@ export function ProfitDashboard({ summary, showClearedPositions, onToggleCleared
   const { totalCost, totalValue, totalProfit, totalProfitPercent, positions, clearedProfit } = summary
   const [shareDialogOpen, setShareDialogOpen] = useState(false)
   const [stockSharePosition, setStockSharePosition] = useState<PositionProfit | null>(null)
+  const [clearedProfitDialogOpen, setClearedProfitDialogOpen] = useState(false)
 
   return (
     <div className="space-y-6">
@@ -122,13 +124,23 @@ export function ProfitDashboard({ summary, showClearedPositions, onToggleCleared
                 </CardTitle>
                 <CardDescription>已清仓 {clearedProfit.count} 只股票的总收益情况</CardDescription>
               </div>
-              <div className="text-right">
-                <div className={`text-3xl font-bold ${clearedProfit.totalProfit >= 0 ? 'text-red-600' : 'text-green-600'}`}>
-                  {clearedProfit.totalProfit >= 0 ? '+' : ''}{formatCurrency(clearedProfit.totalProfit)}
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <div className={`text-3xl font-bold ${clearedProfit.totalProfit >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                    {clearedProfit.totalProfit >= 0 ? '+' : ''}{formatCurrency(clearedProfit.totalProfit)}
+                  </div>
+                  <div className={`text-sm font-medium mt-1 ${getChangeBgClass(clearedProfit.totalProfitPercent)} inline-flex px-2 py-1 rounded-full`}>
+                    {formatPercent(clearedProfit.totalProfitPercent)}
+                  </div>
                 </div>
-                <div className={`text-sm font-medium mt-1 ${getChangeBgClass(clearedProfit.totalProfitPercent)} inline-flex px-2 py-1 rounded-full`}>
-                  {formatPercent(clearedProfit.totalProfitPercent)}
-                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setClearedProfitDialogOpen(true)}
+                  className="shrink-0"
+                >
+                  <Share2 className="h-4 w-4" />
+                </Button>
               </div>
             </div>
           </CardHeader>
@@ -295,6 +307,15 @@ export function ProfitDashboard({ summary, showClearedPositions, onToggleCleared
           position={stockSharePosition}
           isOpen={!!stockSharePosition}
           onClose={() => setStockSharePosition(null)}
+        />
+      )}
+
+      {/* 清仓收益分享对话框 */}
+      {clearedProfit && clearedProfitDialogOpen && (
+        <ClearedProfitShareDialog
+          clearedProfit={clearedProfit}
+          isOpen={clearedProfitDialogOpen}
+          onClose={() => setClearedProfitDialogOpen(false)}
         />
       )}
     </div>

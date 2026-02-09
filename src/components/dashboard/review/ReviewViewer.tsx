@@ -294,15 +294,17 @@ export function ReviewViewer({ onEditDate }: ReviewViewerProps) {
                           <div className="grid grid-cols-12 gap-2 text-sm text-muted-foreground px-3">
                             <div className="col-span-2">股票</div>
                             <div className="col-span-1 text-right">涨跌幅</div>
-                            <div className="col-span-2 text-right">当日盈亏</div>
-                            <div className="col-span-2 text-right">总盈亏</div>
+                            <div className="col-span-1 text-right">当日盈亏</div>
+                            <div className="col-span-1 text-right">总盈亏</div>
                             <div className="col-span-1 text-right">持仓</div>
-                            <div className="col-span-2 text-right">现价/成本</div>
+                            <div className="col-span-1 text-right">现价/成本</div>
+                            <div className="col-span-3 text-center">次日预测价</div>
                             <div className="col-span-2">备注</div>
                           </div>
                           {selectedReview.positionData.positions.map((pos) => {
                             const isPositive = pos.change >= 0;
                             const dailyProfitPositive = pos.dailyProfit >= 0;
+                            const nextHighPositive = (pos.nextHigh || 0) >= pos.currentPrice;
 
                             return (
                               <div
@@ -316,18 +318,46 @@ export function ReviewViewer({ onEditDate }: ReviewViewerProps) {
                                 <div className={`col-span-1 text-right ${isPositive ? 'text-red-500' : 'text-green-500'}`}>
                                   {isPositive ? '+' : ''}{pos.change.toFixed(2)}%
                                 </div>
-                                <div className={`col-span-2 text-right font-medium ${dailyProfitPositive ? 'text-red-500' : 'text-green-500'}`}>
+                                <div className={`col-span-1 text-right font-medium ${dailyProfitPositive ? 'text-red-500' : 'text-green-500'}`}>
                                   {pos.dailyProfit >= 0 ? '+' : ''}¥{pos.dailyProfit.toFixed(2)}
                                 </div>
-                                <div className={`col-span-2 text-right text-sm ${pos.totalProfit >= 0 ? 'text-red-500' : 'text-green-500'}`}>
+                                <div className={`col-span-1 text-right text-sm ${pos.totalProfit >= 0 ? 'text-red-500' : 'text-green-500'}`}>
                                   {pos.totalProfit >= 0 ? '+' : ''}¥{pos.totalProfit.toFixed(2)}
                                 </div>
                                 <div className="col-span-1 text-right text-sm">
                                   {pos.quantity}
                                 </div>
-                                <div className="col-span-2 text-right text-sm">
+                                <div className="col-span-1 text-right text-sm">
                                   <div>¥{pos.currentPrice.toFixed(2)}</div>
                                   <div className="text-xs text-muted-foreground">¥{pos.costPrice.toFixed(2)}</div>
+                                </div>
+                                <div className="col-span-3 text-center">
+                                  <div className="grid grid-cols-4 gap-1 text-xs">
+                                    <div>
+                                      <div className="text-muted-foreground">最高</div>
+                                      <div className={`font-medium ${nextHighPositive ? 'text-red-500' : 'text-green-500'}`}>
+                                        ¥{(pos.nextHigh || 0).toFixed(2)}
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <div className="text-muted-foreground">最低</div>
+                                      <div className={`font-medium ${!nextHighPositive ? 'text-red-500' : 'text-green-500'}`}>
+                                        ¥{(pos.nextLow || 0).toFixed(2)}
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <div className="text-muted-foreground">次高</div>
+                                      <div className={`font-medium ${nextHighPositive ? 'text-red-500' : 'text-green-500'}`}>
+                                        ¥{(pos.nextSecondaryHigh || 0).toFixed(2)}
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <div className="text-muted-foreground">次低</div>
+                                      <div className={`font-medium ${!nextHighPositive ? 'text-red-500' : 'text-green-500'}`}>
+                                        ¥{(pos.nextSecondaryLow || 0).toFixed(2)}
+                                      </div>
+                                    </div>
+                                  </div>
                                 </div>
                                 <div className="col-span-2 text-sm text-muted-foreground">
                                   {pos.note || '-'}

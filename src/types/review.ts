@@ -71,6 +71,11 @@ export interface PositionReviewItem {
   costPrice: number;         // 成本价
   quantity: number;          // 持仓数量
   note?: string;             // 备注分析
+  // 次日预测价格
+  nextHigh?: number;         // 次日最高价
+  nextLow?: number;          // 次日最低价
+  nextSecondaryHigh?: number; // 次日次高价
+  nextSecondaryLow?: number;  // 次日次低价
 }
 
 export interface DailyProfitSummary {

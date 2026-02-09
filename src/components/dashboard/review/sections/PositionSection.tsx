@@ -59,6 +59,22 @@ export function PositionSection({ data, onChange, date }: PositionSectionProps) 
         // 获取实时行情
         const quote = await getStockQuote(pos.symbol);
         const currentPrice = quote?.price || pos.currentPrice || pos.costPrice;
+        const highPrice = quote?.high || currentPrice;
+        const lowPrice = quote?.low || currentPrice;
+
+        // 计算当日均价
+        // 当日均价 = (收盘价*2 + 最高价 + 最低价) / 4
+        const avgPrice = (currentPrice * 2 + highPrice + lowPrice) / 4;
+
+        // 计算次日预测价格
+        // 次日最高价 = 前一天均价 + (前一天最高价 - 前一天最低价)
+        const nextHigh = avgPrice + (highPrice - lowPrice);
+        // 次日最低价 = 前一天均价 - (前一天最高价 - 前一天最低价)
+        const nextLow = avgPrice - (highPrice - lowPrice);
+        // 次日次高价 = 前一天均价*2 - 前一日最低价
+        const nextSecondaryHigh = avgPrice * 2 - lowPrice;
+        // 次日次低价 = 前一天均价*2 - 前一日最高价
+        const nextSecondaryLow = avgPrice * 2 - highPrice;
 
         // 判断是否今天买入的
         const today = new Date();
@@ -127,6 +143,11 @@ export function PositionSection({ data, onChange, date }: PositionSectionProps) 
           costPrice: pos.costPrice,
           quantity: pos.quantity,
           note: data?.positions.find(p => p.symbol === pos.symbol)?.note || '',
+          // 次日预测价格
+          nextHigh,
+          nextLow,
+          nextSecondaryHigh,
+          nextSecondaryLow,
         };
       })
     );
@@ -220,16 +241,18 @@ export function PositionSection({ data, onChange, date }: PositionSectionProps) 
           <div className="grid grid-cols-12 gap-2 text-sm text-muted-foreground px-3">
             <div className="col-span-2">股票</div>
             <div className="col-span-1 text-right">当日涨跌幅</div>
-            <div className="col-span-2 text-right">当日盈亏</div>
-            <div className="col-span-2 text-right">总盈亏</div>
+            <div className="col-span-1 text-right">当日盈亏</div>
+            <div className="col-span-1 text-right">总盈亏</div>
             <div className="col-span-1 text-right">持仓</div>
-            <div className="col-span-2 text-right">现价/成本</div>
+            <div className="col-span-1 text-right">现价/成本</div>
+            <div className="col-span-3 text-center">次日预测价</div>
             <div className="col-span-2">备注</div>
           </div>
 
           {displayPositions.map((pos: any) => {
             const isPositive = pos.change >= 0;
             const dailyProfitPositive = pos.dailyProfit >= 0;
+            const nextHighPositive = (pos.nextHigh || 0) >= pos.currentPrice;
 
             return (
               <div
@@ -245,11 +268,11 @@ export function PositionSection({ data, onChange, date }: PositionSectionProps) 
                   {isPositive ? '+' : ''}{pos.change.toFixed(2)}%
                 </div>
 
-                <div className={`col-span-2 text-right font-medium ${dailyProfitPositive ? 'text-red-500' : 'text-green-500'}`}>
+                <div className={`col-span-1 text-right font-medium ${dailyProfitPositive ? 'text-red-500' : 'text-green-500'}`}>
                   {pos.dailyProfit >= 0 ? '+' : ''}¥{pos.dailyProfit.toFixed(2)}
                 </div>
 
-                <div className={`col-span-2 text-right text-sm ${pos.totalProfit >= 0 ? 'text-red-500' : 'text-green-500'}`}>
+                <div className={`col-span-1 text-right text-sm ${pos.totalProfit >= 0 ? 'text-red-500' : 'text-green-500'}`}>
                   {pos.totalProfit >= 0 ? '+' : ''}¥{pos.totalProfit.toFixed(2)}
                 </div>
 
@@ -257,9 +280,38 @@ export function PositionSection({ data, onChange, date }: PositionSectionProps) 
                   {pos.quantity}
                 </div>
 
-                <div className="col-span-2 text-right text-sm">
+                <div className="col-span-1 text-right text-sm">
                   <div>¥{pos.currentPrice.toFixed(2)}</div>
                   <div className="text-xs text-muted-foreground">¥{pos.costPrice.toFixed(2)}</div>
+                </div>
+
+                <div className="col-span-3 text-center">
+                  <div className="grid grid-cols-4 gap-1 text-xs">
+                    <div>
+                      <div className="text-muted-foreground">最高</div>
+                      <div className={`font-medium ${nextHighPositive ? 'text-red-500' : 'text-green-500'}`}>
+                        ¥{(pos.nextHigh || 0).toFixed(2)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">最低</div>
+                      <div className={`font-medium ${!nextHighPositive ? 'text-red-500' : 'text-green-500'}`}>
+                        ¥{(pos.nextLow || 0).toFixed(2)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">次高</div>
+                      <div className={`font-medium ${nextHighPositive ? 'text-red-500' : 'text-green-500'}`}>
+                        ¥{(pos.nextSecondaryHigh || 0).toFixed(2)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">次低</div>
+                      <div className={`font-medium ${!nextHighPositive ? 'text-red-500' : 'text-green-500'}`}>
+                        ¥{(pos.nextSecondaryLow || 0).toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="col-span-2">

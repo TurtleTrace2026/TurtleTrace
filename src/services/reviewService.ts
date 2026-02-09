@@ -209,15 +209,19 @@ class ReviewService {
       lines.push('');
 
       if (review.positionData.positions.length > 0) {
-        lines.push('| 股票 | 涨跌幅 | 当日盈亏 | 总盈亏 |');
-        lines.push('|------|--------|----------|--------|');
+        lines.push('| 股票 | 涨跌幅 | 当日盈亏 | 总盈亏 | 次日最高 | 次日最低 | 次日次高 | 次日次低 |');
+        lines.push('|------|--------|----------|--------|----------|----------|----------|----------|');
         for (const pos of review.positionData.positions) {
           const changeStr = pos.change >= 0 ? `+${pos.change.toFixed(2)}%` : `${pos.change.toFixed(2)}%`;
           const dailyProfitStr = pos.dailyProfit >= 0 ? `+${pos.dailyProfit.toFixed(2)}` : `${pos.dailyProfit.toFixed(2)}`;
           const totalProfitStr = pos.totalProfit >= 0 ? `+${pos.totalProfit.toFixed(2)}` : `${pos.totalProfit.toFixed(2)}`;
-          lines.push(`| ${pos.name} | ${changeStr} | ${dailyProfitStr} | ${totalProfitStr} |`);
+          const nextHighStr = pos.nextHigh ? `¥${pos.nextHigh.toFixed(2)}` : '-';
+          const nextLowStr = pos.nextLow ? `¥${pos.nextLow.toFixed(2)}` : '-';
+          const nextSecondaryHighStr = pos.nextSecondaryHigh ? `¥${pos.nextSecondaryHigh.toFixed(2)}` : '-';
+          const nextSecondaryLowStr = pos.nextSecondaryLow ? `¥${pos.nextSecondaryLow.toFixed(2)}` : '-';
+          lines.push(`| ${pos.name} | ${changeStr} | ${dailyProfitStr} | ${totalProfitStr} | ${nextHighStr} | ${nextLowStr} | ${nextSecondaryHighStr} | ${nextSecondaryLowStr} |`);
           if (pos.note) {
-            lines.push(`| &nbsp; | *备注: ${pos.note}* | | |`);
+            lines.push(`| &nbsp; | *备注: ${pos.note}* | | | | | | |`);
           }
         }
         lines.push('');

@@ -99,12 +99,6 @@ npm run preview
 - TuShare A股股票基础数据
 - 包含：股票代码、名称、行业、交易所等信息
 
-如需更新股票数据库，可运行：
-
-```bash
-node scripts/build-stock-db.js
-```
-
 ### 环境变量
 
 项目使用公开 API，无需配置环境变量即可运行。

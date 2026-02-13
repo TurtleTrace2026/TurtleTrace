@@ -241,11 +241,10 @@ export function PositionSection({ data, onChange, date }: PositionSectionProps) 
           <div className="grid grid-cols-12 gap-2 text-sm text-muted-foreground px-3">
             <div className="col-span-2">股票</div>
             <div className="col-span-1 text-right">当日涨跌幅</div>
-            <div className="col-span-1 text-right">当日盈亏</div>
-            <div className="col-span-1 text-right">总盈亏</div>
+            <div className="col-span-2 text-right">当日盈亏</div>
+            <div className="col-span-2 text-right">总盈亏</div>
             <div className="col-span-1 text-right">持仓</div>
-            <div className="col-span-1 text-right">现价/成本</div>
-            <div className="col-span-3 text-center">次日预测价</div>
+            <div className="col-span-2 text-right">现价/成本</div>
             <div className="col-span-2">备注</div>
           </div>
 
@@ -268,11 +267,11 @@ export function PositionSection({ data, onChange, date }: PositionSectionProps) 
                   {isPositive ? '+' : ''}{pos.change.toFixed(2)}%
                 </div>
 
-                <div className={`col-span-1 text-right font-medium ${dailyProfitPositive ? 'text-red-500' : 'text-green-500'}`}>
+                <div className={`col-span-2 text-right font-medium ${dailyProfitPositive ? 'text-red-500' : 'text-green-500'}`}>
                   {pos.dailyProfit >= 0 ? '+' : ''}¥{pos.dailyProfit.toFixed(2)}
                 </div>
 
-                <div className={`col-span-1 text-right text-sm ${pos.totalProfit >= 0 ? 'text-red-500' : 'text-green-500'}`}>
+                <div className={`col-span-2 text-right text-sm ${pos.totalProfit >= 0 ? 'text-red-500' : 'text-green-500'}`}>
                   {pos.totalProfit >= 0 ? '+' : ''}¥{pos.totalProfit.toFixed(2)}
                 </div>
 
@@ -280,35 +279,36 @@ export function PositionSection({ data, onChange, date }: PositionSectionProps) 
                   {pos.quantity}
                 </div>
 
-                <div className="col-span-1 text-right text-sm">
+                <div className="col-span-2 text-right text-sm relative group cursor-pointer">
                   <div>¥{pos.currentPrice.toFixed(2)}</div>
                   <div className="text-xs text-muted-foreground">¥{pos.costPrice.toFixed(2)}</div>
-                </div>
-
-                <div className="col-span-3 text-center">
-                  <div className="grid grid-cols-4 gap-1 text-xs">
-                    <div>
-                      <div className="text-muted-foreground">最高</div>
-                      <div className={`font-medium ${nextHighPositive ? 'text-red-500' : 'text-green-500'}`}>
-                        ¥{(pos.nextHigh || 0).toFixed(2)}
+                  {/* 悬停时显示次日预测价 */}
+                  <div className="absolute right-0 top-full mt-1 z-10 hidden group-hover:block bg-popover border rounded-md shadow-lg p-2 text-xs min-w-[140px]">
+                    <div className="text-center text-muted-foreground mb-1 font-medium">次日预测价</div>
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">最高</span>
+                        <span className={nextHighPositive ? 'text-red-500' : 'text-green-500'}>
+                          ¥{(pos.nextHigh || 0).toFixed(2)}
+                        </span>
                       </div>
-                    </div>
-                    <div>
-                      <div className="text-muted-foreground">最低</div>
-                      <div className={`font-medium ${!nextHighPositive ? 'text-red-500' : 'text-green-500'}`}>
-                        ¥{(pos.nextLow || 0).toFixed(2)}
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">最低</span>
+                        <span className={!nextHighPositive ? 'text-red-500' : 'text-green-500'}>
+                          ¥{(pos.nextLow || 0).toFixed(2)}
+                        </span>
                       </div>
-                    </div>
-                    <div>
-                      <div className="text-muted-foreground">次高</div>
-                      <div className={`font-medium ${nextHighPositive ? 'text-red-500' : 'text-green-500'}`}>
-                        ¥{(pos.nextSecondaryHigh || 0).toFixed(2)}
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">次高</span>
+                        <span className={nextHighPositive ? 'text-red-500' : 'text-green-500'}>
+                          ¥{(pos.nextSecondaryHigh || 0).toFixed(2)}
+                        </span>
                       </div>
-                    </div>
-                    <div>
-                      <div className="text-muted-foreground">次低</div>
-                      <div className={`font-medium ${!nextHighPositive ? 'text-red-500' : 'text-green-500'}`}>
-                        ¥{(pos.nextSecondaryLow || 0).toFixed(2)}
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">次低</span>
+                        <span className={!nextHighPositive ? 'text-red-500' : 'text-green-500'}>
+                          ¥{(pos.nextSecondaryLow || 0).toFixed(2)}
+                        </span>
                       </div>
                     </div>
                   </div>

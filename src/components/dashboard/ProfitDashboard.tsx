@@ -256,14 +256,57 @@ export function ProfitDashboard({ summary, showClearedPositions, onToggleCleared
               {positions
                 .sort((a, b) => b.profit - a.profit)
                 .map((position) => {
+                  const hasNextPrice = position.nextHigh !== undefined
+                  const nextHighPositive = (position.nextHigh || 0) >= position.currentPrice
+
                   return (
                     <div
                       key={position.symbol}
                       className="grid grid-cols-12 gap-4 items-center px-4 py-3 rounded-lg hover:bg-muted/50 transition-colors group"
                     >
                       <div className="col-span-3">
-                        <div className="font-medium">{position.name}</div>
-                        <div className="text-sm text-muted-foreground">{position.symbol}</div>
+                        <div className="relative">
+                          <div className="font-medium">{position.name}</div>
+                          <div className="text-sm text-muted-foreground">{position.symbol}</div>
+                          {/* 悬停时显示次日预测价 - 使用 opacity 实现显示/隐藏 */}
+                          <div className="absolute left-0 top-full mt-2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 bg-popover border rounded-md shadow-lg p-3 text-xs min-w-[180px]">
+                            {hasNextPrice ? (
+                              <>
+                                <div className="text-center text-muted-foreground mb-2 font-medium border-b pb-1">次日预测价</div>
+                                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                                  <div className="flex justify-between gap-2">
+                                    <span className="text-muted-foreground">最高</span>
+                                    <span className={nextHighPositive ? 'text-red-500 font-medium' : 'text-green-500 font-medium'}>
+                                      ¥{(position.nextHigh || 0).toFixed(2)}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between gap-2">
+                                    <span className="text-muted-foreground">最低</span>
+                                    <span className={!nextHighPositive ? 'text-red-500 font-medium' : 'text-green-500 font-medium'}>
+                                      ¥{(position.nextLow || 0).toFixed(2)}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between gap-2">
+                                    <span className="text-muted-foreground">次高</span>
+                                    <span className={nextHighPositive ? 'text-red-500 font-medium' : 'text-green-500 font-medium'}>
+                                      ¥{(position.nextSecondaryHigh || 0).toFixed(2)}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between gap-2">
+                                    <span className="text-muted-foreground">次低</span>
+                                    <span className={!nextHighPositive ? 'text-red-500 font-medium' : 'text-green-500 font-medium'}>
+                                      ¥{(position.nextSecondaryLow || 0).toFixed(2)}
+                                    </span>
+                                  </div>
+                                </div>
+                              </>
+                            ) : (
+                              <div className="text-center text-muted-foreground py-1">
+                                刷新价格后显示
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
                       <div className="col-span-2 text-right text-muted-foreground">
                         {formatCurrency(position.cost)}

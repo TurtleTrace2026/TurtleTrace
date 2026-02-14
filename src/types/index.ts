@@ -36,6 +36,9 @@ export interface Position {
   quantity: number      // 当前持仓数量
   currentPrice: number  // 当前价格
   changePercent: number // 涨跌幅 (%)
+  high?: number         // 当日最高价
+  low?: number          // 当日最低价
+  open?: number         // 当日开盘价
   transactions: Transaction[]  // 交易记录
   totalBuyAmount: number  // 累计买入金额（用于计算成本）
   totalSellAmount: number // 累计卖出金额（用于计算成本）
@@ -92,6 +95,12 @@ export interface PositionProfit {
   profit: number
   profitPercent: number
   quantity: number
+  currentPrice: number
+  // 次日预测价格
+  nextHigh?: number
+  nextLow?: number
+  nextSecondaryHigh?: number
+  nextSecondaryLow?: number
 }
 
 // 新闻条目

@@ -7,6 +7,22 @@ export function calculatePositionProfit(position: Position): PositionProfit {
   const profit = value - cost
   const profitPercent = cost > 0 ? (profit / cost) * 100 : 0
 
+  // 计算次日预测价格
+  let nextHigh: number | undefined
+  let nextLow: number | undefined
+  let nextSecondaryHigh: number | undefined
+  let nextSecondaryLow: number | undefined
+
+  if (position.high && position.low && position.currentPrice) {
+    const avgPrice = (position.high + position.low + position.currentPrice) / 3
+    const range = position.high - position.low
+
+    nextHigh = Number((avgPrice + range).toFixed(2))
+    nextLow = Number((avgPrice - range).toFixed(2))
+    nextSecondaryHigh = Number((avgPrice + range * 0.5).toFixed(2))
+    nextSecondaryLow = Number((avgPrice - range * 0.5).toFixed(2))
+  }
+
   return {
     symbol: position.symbol,
     name: position.name,
@@ -15,6 +31,11 @@ export function calculatePositionProfit(position: Position): PositionProfit {
     profit,
     profitPercent,
     quantity: position.quantity,
+    currentPrice: position.currentPrice,
+    nextHigh,
+    nextLow,
+    nextSecondaryHigh,
+    nextSecondaryLow,
   }
 }
 

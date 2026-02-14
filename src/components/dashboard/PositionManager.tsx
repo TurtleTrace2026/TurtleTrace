@@ -334,6 +334,9 @@ export function PositionManager({
               ...pos,
               currentPrice: quote.price,
               changePercent,
+              high: quote.high,
+              low: quote.low,
+              open: quote.open,
             }
           }
           return pos

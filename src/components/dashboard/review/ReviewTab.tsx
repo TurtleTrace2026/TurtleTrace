@@ -2,38 +2,77 @@ import { useState, useEffect } from 'react';
 import { Edit, Eye, Plus } from 'lucide-react';
 import { ReviewEditor } from './ReviewEditor';
 import { ReviewViewer } from './ReviewViewer';
+import { WeeklyReviewEditor } from '../weeklyReview/WeeklyReviewEditor';
+import { WeeklyReviewViewer } from '../weeklyReview/WeeklyReviewViewer';
 import { reviewService } from '../../../services/reviewService';
+import { weeklyReviewService } from '../../../services/weeklyReviewService';
 import type { DailyReview } from '../../../types/review';
+import type { WeeklyReview } from '../../../types/weeklyReview';
+import { getCurrentWeekLabel } from '../../../types/weeklyReview';
 
+type ReviewType = 'daily' | 'weekly';
 type ViewMode = 'edit' | 'view';
 
 export function ReviewTab() {
+  const [reviewType, setReviewType] = useState<ReviewType>('daily');
   const [viewMode, setViewMode] = useState<ViewMode>('view');
   const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date();
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   });
+  const [selectedWeek, setSelectedWeek] = useState(getCurrentWeekLabel());
   const [existingReview, setExistingReview] = useState<DailyReview | undefined>();
+  const [existingWeeklyReview, setExistingWeeklyReview] = useState<WeeklyReview | undefined>();
   const [hasAnyReviews, setHasAnyReviews] = useState(false);
+  const [hasAnyWeeklyReviews, setHasAnyWeeklyReviews] = useState(false);
 
   // 检查是否有任何复盘记录
   useEffect(() => {
     checkAnyReviews();
+    checkAnyWeeklyReviews();
   }, []);
 
   // 检查当前日期是否有复盘
   useEffect(() => {
-    checkReviewExists();
-  }, [selectedDate]);
+    if (reviewType === 'daily') {
+      checkReviewExists();
+    } else {
+      checkWeeklyReviewExists();
+    }
+  }, [selectedDate, selectedWeek, reviewType]);
 
   const checkAnyReviews = async () => {
     const allReviews = await reviewService.getAllReviews();
     setHasAnyReviews(allReviews.length > 0);
   };
 
+  const checkAnyWeeklyReviews = async () => {
+    const allReviews = await weeklyReviewService.getAllReviews();
+    setHasAnyWeeklyReviews(allReviews.length > 0);
+  };
+
   const checkReviewExists = async () => {
     const review = await reviewService.getReview(selectedDate);
     setExistingReview(review || undefined);
+  };
+
+  const checkWeeklyReviewExists = async () => {
+    const review = await weeklyReviewService.getReview(selectedWeek);
+    setExistingWeeklyReview(review || undefined);
+  };
+
+  // 切换复盘类型
+  const handleReviewTypeChange = async (type: ReviewType) => {
+    setReviewType(type);
+    setViewMode('view');
+    if (type === 'daily') {
+      setSelectedDate(() => {
+        const today = new Date();
+        return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      });
+    } else {
+      setSelectedWeek(getCurrentWeekLabel());
+    }
   };
 
   // 切换到编辑模式
@@ -42,10 +81,15 @@ export function ReviewTab() {
     setViewMode('edit');
   };
 
+  const handleEditWeek = (weekLabel: string) => {
+    setSelectedWeek(weekLabel);
+    setViewMode('edit');
+  };
+
   // 切换到查看模式
   const handleSwitchToView = async () => {
-    // 刷新是否有复盘记录
     await checkAnyReviews();
+    await checkAnyWeeklyReviews();
     setViewMode('view');
   };
 
@@ -55,6 +99,11 @@ export function ReviewTab() {
     setHasAnyReviews(true);
   };
 
+  const handleWeeklySave = (review: WeeklyReview) => {
+    setExistingWeeklyReview(review);
+    setHasAnyWeeklyReviews(true);
+  };
+
   // 获取今天的日期
   const getTodayDate = () => {
     const today = new Date();
@@ -62,12 +111,40 @@ export function ReviewTab() {
   };
 
   const todayDate = getTodayDate();
+  const currentWeekLabel = getCurrentWeekLabel();
 
   return (
     <div className="space-y-4">
       {/* 模式切换 */}
       <div className="flex items-center justify-between border-b pb-4">
         <div className="flex gap-2">
+          {/* 复盘类型切换 */}
+          <div className="flex gap-1 bg-muted rounded-lg p-1">
+            <button
+              onClick={() => handleReviewTypeChange('daily')}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                reviewType === 'daily'
+                  ? 'bg-background shadow-sm'
+                  : 'hover:bg-background/50'
+              }`}
+            >
+              每日复盘
+            </button>
+            <button
+              onClick={() => handleReviewTypeChange('weekly')}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                reviewType === 'weekly'
+                  ? 'bg-background shadow-sm'
+                  : 'hover:bg-background/50'
+              }`}
+            >
+              每周复盘
+            </button>
+          </div>
+
+          <div className="w-px bg-border mx-2" />
+
+          {/* 编辑/查看模式切换 */}
           <button
             onClick={() => setViewMode('edit')}
             className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
@@ -81,7 +158,7 @@ export function ReviewTab() {
           </button>
           <button
             onClick={handleSwitchToView}
-            disabled={!hasAnyReviews}
+            disabled={reviewType === 'daily' ? !hasAnyReviews : !hasAnyWeeklyReviews}
             className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
               viewMode === 'view'
                 ? 'bg-primary text-primary-foreground'
@@ -93,23 +170,41 @@ export function ReviewTab() {
           </button>
         </div>
 
-        {selectedDate === todayDate && !existingReview && (
+        {reviewType === 'daily' && selectedDate === todayDate && !existingReview && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Plus className="h-4 w-4" />
             开始今日复盘
           </div>
         )}
+        {reviewType === 'weekly' && selectedWeek === currentWeekLabel && !existingWeeklyReview && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Plus className="h-4 w-4" />
+            开始本周复盘
+          </div>
+        )}
       </div>
 
       {/* 内容区域 */}
-      {viewMode === 'edit' ? (
-        <ReviewEditor
-          date={selectedDate}
-          existingReview={existingReview}
-          onSave={handleSave}
-        />
+      {reviewType === 'daily' ? (
+        viewMode === 'edit' ? (
+          <ReviewEditor
+            date={selectedDate}
+            existingReview={existingReview}
+            onSave={handleSave}
+          />
+        ) : (
+          <ReviewViewer onEditDate={handleEditDate} />
+        )
       ) : (
-        <ReviewViewer onEditDate={handleEditDate} />
+        viewMode === 'edit' ? (
+          <WeeklyReviewEditor
+            weekLabel={selectedWeek}
+            existingReview={existingWeeklyReview}
+            onSave={handleWeeklySave}
+          />
+        ) : (
+          <WeeklyReviewViewer onEditWeek={handleEditWeek} />
+        )
       )}
     </div>
   );

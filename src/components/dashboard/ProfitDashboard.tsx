@@ -8,7 +8,16 @@ import { cn } from '../../lib/utils'
 import { ShareDialog } from './ShareDialog'
 import { StockShareDialog } from './StockShareDialog'
 import { ClearedProfitShareDialog } from './ClearedProfitShareDialog'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
+import { createPortal } from 'react-dom'
+
+// 次日预测价弹窗的位置状态
+interface PopupPosition {
+  top: number
+  left: number
+  visible: boolean
+  symbol: string
+}
 
 interface ProfitDashboardProps {
   summary: ProfitSummary
@@ -31,6 +40,15 @@ export function ProfitDashboard({
   const [shareDialogOpen, setShareDialogOpen] = useState(false)
   const [stockSharePosition, setStockSharePosition] = useState<PositionProfit | null>(null)
   const [clearedProfitDialogOpen, setClearedProfitDialogOpen] = useState(false)
+
+  // 次日预测价弹窗状态
+  const [popupState, setPopupState] = useState<PopupPosition>({
+    top: 0,
+    left: 0,
+    visible: false,
+    symbol: ''
+  })
+  const popupTriggerRefs = useRef<Map<string, HTMLDivElement>>(new Map())
 
   return (
     <div className="space-y-6">
@@ -291,57 +309,35 @@ export function ProfitDashboard({
 
               {positions
                 .sort((a, b) => b.profit - a.profit)
-                .map((position) => {
-                  const hasNextPrice = position.nextHigh !== undefined
-                  const nextHighPositive = (position.nextHigh || 0) >= position.currentPrice
-
-                  return (
-                    <div
+                .map((position) => (
+                  <div
                       key={position.symbol}
                       className="grid grid-cols-12 gap-3 items-center px-4 py-3 rounded-lg border-b last:border-b-0 bg-surface/30 hover:bg-surface/50 transition-colors group"
                     >
                       <div className="col-span-3">
-                        <div className="relative">
+                        <div
+                          ref={(el) => {
+                            if (el) popupTriggerRefs.current.set(position.symbol, el)
+                          }}
+                          className="relative"
+                          onMouseEnter={() => {
+                            const el = popupTriggerRefs.current.get(position.symbol)
+                            if (el) {
+                              const rect = el.getBoundingClientRect()
+                              setPopupState({
+                                top: rect.bottom + 8,
+                                left: rect.left,
+                                visible: true,
+                                symbol: position.symbol
+                              })
+                            }
+                          }}
+                          onMouseLeave={() => {
+                            setPopupState(prev => prev.symbol === position.symbol ? { ...prev, visible: false } : prev)
+                          }}
+                        >
                           <div className="font-medium">{position.name}</div>
                           <div className="text-sm text-muted-foreground font-mono text-xs">{position.symbol}</div>
-                          {/* 悬停时显示次日预测价 */}
-                          <div className="absolute left-0 top-full mt-2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 bg-popover border rounded-xl shadow-lg p-3 text-xs min-w-[200px]">
-                            {hasNextPrice ? (
-                              <>
-                                <div className="text-center text-muted-foreground mb-3 font-medium border-b pb-2">次日预测价</div>
-                                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                                  <div className="flex justify-between gap-2">
-                                    <span className="text-muted-foreground">最高</span>
-                                    <span className={cn("font-mono font-medium", nextHighPositive ? 'text-up' : 'text-down')}>
-                                      ¥{(position.nextHigh || 0).toFixed(2)}
-                                    </span>
-                                  </div>
-                                  <div className="flex justify-between gap-2">
-                                    <span className="text-muted-foreground">最低</span>
-                                    <span className={cn("font-mono font-medium", !nextHighPositive ? 'text-up' : 'text-down')}>
-                                      ¥{(position.nextLow || 0).toFixed(2)}
-                                    </span>
-                                  </div>
-                                  <div className="flex justify-between gap-2">
-                                    <span className="text-muted-foreground">次高</span>
-                                    <span className={cn("font-mono font-medium", nextHighPositive ? 'text-up' : 'text-down')}>
-                                      ¥{(position.nextSecondaryHigh || 0).toFixed(2)}
-                                    </span>
-                                  </div>
-                                  <div className="flex justify-between gap-2">
-                                    <span className="text-muted-foreground">次低</span>
-                                    <span className={cn("font-mono font-medium", !nextHighPositive ? 'text-up' : 'text-down')}>
-                                      ¥{(position.nextSecondaryLow || 0).toFixed(2)}
-                                    </span>
-                                  </div>
-                                </div>
-                              </>
-                            ) : (
-                              <div className="text-center text-muted-foreground py-2">
-                                刷新价格后显示
-                              </div>
-                            )}
-                          </div>
                         </div>
                       </div>
                       <div className="col-span-2 text-right text-muted-foreground font-mono text-sm">
@@ -374,7 +370,7 @@ export function ProfitDashboard({
                       </div>
                     </div>
                   )
-                })}
+                )}
             </div>
           )}
         </div>
@@ -396,6 +392,68 @@ export function ProfitDashboard({
           isOpen={clearedProfitDialogOpen}
           onClose={() => setClearedProfitDialogOpen(false)}
         />
+      )}
+
+      {/* 次日预测价弹窗 - 使用 Portal 渲染到 body */}
+      {popupState.visible && createPortal(
+        <div
+          className="fixed z-[100] bg-popover border rounded-xl shadow-lg p-3 text-xs min-w-[200px] animate-in fade-in duration-200"
+          style={{
+            top: `${popupState.top}px`,
+            left: `${popupState.left}px`
+          }}
+          onMouseEnter={() => {
+            // 保持弹窗显示
+          }}
+          onMouseLeave={() => {
+            setPopupState(prev => ({ ...prev, visible: false }))
+          }}
+        >
+          {(() => {
+            const position = positions.find(p => p.symbol === popupState.symbol)
+            if (!position) return null
+
+            const hasNextPrice = position.nextHigh !== undefined
+            const nextHighPositive = (position.nextHigh || 0) >= position.currentPrice
+
+            return hasNextPrice ? (
+              <>
+                <div className="text-center text-muted-foreground mb-3 font-medium border-b pb-2">次日预测价</div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                  <div className="flex justify-between gap-2">
+                    <span className="text-muted-foreground">最高</span>
+                    <span className={cn("font-mono font-medium", nextHighPositive ? 'text-up' : 'text-down')}>
+                      ¥{(position.nextHigh || 0).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <span className="text-muted-foreground">最低</span>
+                    <span className={cn("font-mono font-medium", !nextHighPositive ? 'text-up' : 'text-down')}>
+                      ¥{(position.nextLow || 0).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <span className="text-muted-foreground">次高</span>
+                    <span className={cn("font-mono font-medium", nextHighPositive ? 'text-up' : 'text-down')}>
+                      ¥{(position.nextSecondaryHigh || 0).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <span className="text-muted-foreground">次低</span>
+                    <span className={cn("font-mono font-medium", !nextHighPositive ? 'text-up' : 'text-down')}>
+                      ¥{(position.nextSecondaryLow || 0).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="text-center text-muted-foreground py-2">
+                刷新价格后显示
+              </div>
+            )
+          })()}
+        </div>,
+        document.body
       )}
     </div>
   )

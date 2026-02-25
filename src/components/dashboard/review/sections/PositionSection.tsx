@@ -1,10 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '../../../../lib/utils';
 import { SectionCard } from '../shared/SectionCard';
 import { TextInput } from '../shared/TextInput';
 import type { PositionReviewData } from '../../../../types/review';
 import { getStockQuote } from '../../../../services/stockService';
 import type { Position } from '../../../../types';
+
+// 次日预测价弹窗的位置状态
+interface PopupPosition {
+  top: number
+  left: number
+  visible: boolean
+  symbol: string
+}
 
 interface PositionSectionProps {
   data?: PositionReviewData;
@@ -15,6 +24,15 @@ interface PositionSectionProps {
 export function PositionSection({ data, onChange, date }: PositionSectionProps) {
   const [positions, setPositions] = useState<Position[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // 次日预测价弹窗状态
+  const [popupState, setPopupState] = useState<PopupPosition>({
+    top: 0,
+    left: 0,
+    visible: false,
+    symbol: ''
+  })
+  const popupTriggerRefs = useRef<Map<string, HTMLDivElement>>(new Map())
 
   // 加载本地持仓数据
   useEffect(() => {
@@ -256,7 +274,6 @@ export function PositionSection({ data, onChange, date }: PositionSectionProps) 
           {displayPositions.map((pos: any) => {
             const isPositive = pos.change >= 0;
             const dailyProfitPositive = pos.dailyProfit >= 0;
-            const nextHighPositive = (pos.nextHigh || 0) >= pos.currentPrice;
 
             return (
               <div
@@ -284,39 +301,29 @@ export function PositionSection({ data, onChange, date }: PositionSectionProps) 
                   {pos.quantity}
                 </div>
 
-                <div className="col-span-2 text-right text-sm relative group cursor-pointer">
+                <div
+                  ref={(el) => {
+                    if (el) popupTriggerRefs.current.set(pos.symbol, el)
+                  }}
+                  className="col-span-2 text-right text-sm relative group cursor-pointer"
+                  onMouseEnter={() => {
+                    const el = popupTriggerRefs.current.get(pos.symbol)
+                    if (el) {
+                      const rect = el.getBoundingClientRect()
+                      setPopupState({
+                        top: rect.bottom + 8,
+                        left: rect.right - 200, // 右对齐，200px 是弹窗宽度
+                        visible: true,
+                        symbol: pos.symbol
+                      })
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    setPopupState(prev => prev.symbol === pos.symbol ? { ...prev, visible: false } : prev)
+                  }}
+                >
                   <div className="font-mono tabular-nums">¥{pos.currentPrice.toFixed(2)}</div>
                   <div className="text-xs text-muted-foreground font-mono tabular-nums">¥{pos.costPrice.toFixed(2)}</div>
-                  {/* 悬停时显示次日预测价 */}
-                  <div className="absolute right-0 top-full mt-2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 bg-popover border rounded-xl shadow-lg p-3 text-xs min-w-[200px]">
-                    <div className="text-center text-muted-foreground mb-3 font-medium border-b pb-2">次日预测价</div>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                      <div className="flex justify-between gap-2">
-                        <span className="text-muted-foreground">最高</span>
-                        <span className={cn("font-mono font-medium", nextHighPositive ? 'text-up' : 'text-down')}>
-                          ¥{(pos.nextHigh || 0).toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between gap-2">
-                        <span className="text-muted-foreground">最低</span>
-                        <span className={cn("font-mono font-medium", !nextHighPositive ? 'text-up' : 'text-down')}>
-                          ¥{(pos.nextLow || 0).toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between gap-2">
-                        <span className="text-muted-foreground">次高</span>
-                        <span className={cn("font-mono font-medium", nextHighPositive ? 'text-up' : 'text-down')}>
-                          ¥{(pos.nextSecondaryHigh || 0).toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between gap-2">
-                        <span className="text-muted-foreground">次低</span>
-                        <span className={cn("font-mono font-medium", !nextHighPositive ? 'text-up' : 'text-down')}>
-                          ¥{(pos.nextSecondaryLow || 0).toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
                 </div>
 
                 <div className="col-span-2">
@@ -331,6 +338,63 @@ export function PositionSection({ data, onChange, date }: PositionSectionProps) 
             );
           })}
         </div>
+      )}
+
+      {/* 次日预测价弹窗 - 使用 Portal 渲染到 body */}
+      {popupState.visible && createPortal(
+        <div
+          className="fixed z-[100] bg-popover border rounded-xl shadow-lg p-3 text-xs min-w-[200px] animate-in fade-in duration-200"
+          style={{
+            top: `${popupState.top}px`,
+            left: `${popupState.left}px`
+          }}
+          onMouseEnter={() => {
+            // 保持弹窗显示
+          }}
+          onMouseLeave={() => {
+            setPopupState(prev => ({ ...prev, visible: false }))
+          }}
+        >
+          {(() => {
+            const pos = displayPositions.find((p: any) => p.symbol === popupState.symbol)
+            if (!pos) return null
+
+            const nextHighPositive = (pos.nextHigh || 0) >= pos.currentPrice
+
+            return (
+              <>
+                <div className="text-center text-muted-foreground mb-3 font-medium border-b pb-2">次日预测价</div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                  <div className="flex justify-between gap-2">
+                    <span className="text-muted-foreground">最高</span>
+                    <span className={cn("font-mono font-medium", nextHighPositive ? 'text-up' : 'text-down')}>
+                      ¥{(pos.nextHigh || 0).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <span className="text-muted-foreground">最低</span>
+                    <span className={cn("font-mono font-medium", !nextHighPositive ? 'text-up' : 'text-down')}>
+                      ¥{(pos.nextLow || 0).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <span className="text-muted-foreground">次高</span>
+                    <span className={cn("font-mono font-medium", nextHighPositive ? 'text-up' : 'text-down')}>
+                      ¥{(pos.nextSecondaryHigh || 0).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <span className="text-muted-foreground">次低</span>
+                    <span className={cn("font-mono font-medium", !nextHighPositive ? 'text-up' : 'text-down')}>
+                      ¥{(pos.nextSecondaryLow || 0).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </>
+            )
+          })()}
+        </div>,
+        document.body
       )}
     </SectionCard>
   );

@@ -303,12 +303,12 @@ export function NewsFeed({ symbols: _symbols }: NewsFeedProps) {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="absolute top-0 right-4 h-6 w-6 p-0"
+                        className="absolute top-0 right-4 h-6 w-6 p-0 z-10"
                         onClick={(e) => handleCloseAnalysis(item.id, e)}
                       >
                         <X className="h-4 w-4" />
                       </Button>
-                      <NewsAnalysisComponent analysis={analysis} />
+                      <NewsAnalysisComponent analysis={analysis} newsTitle={item.title || ''} />
                     </div>
                   )}
                 </div>

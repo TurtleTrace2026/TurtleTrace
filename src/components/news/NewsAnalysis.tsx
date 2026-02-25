@@ -1,4 +1,5 @@
 import { Badge } from '../ui/badge'
+import { Button } from '../ui/button'
 import {
   TrendingUp,
   TrendingDown,
@@ -10,13 +11,16 @@ import {
   Clock,
   ChevronDown,
   ChevronUp,
-  Info
+  Info,
+  Share2
 } from 'lucide-react'
 import type { NewsAnalysis, Direction, Sentiment, Level, TimeHorizon, ExpectationGap } from '../../services/aiService'
 import { useState } from 'react'
+import { ShareDialog } from './ShareDialog'
 
 interface NewsAnalysisProps {
   analysis: NewsAnalysis
+  newsTitle?: string
   onClose?: () => void
 }
 
@@ -83,8 +87,9 @@ function getExpectationConfig(expectation?: ExpectationGap) {
   return expectation ? (expectationGapConfig[expectation] ?? defaultExpectationConfig) : defaultExpectationConfig
 }
 
-export function NewsAnalysisComponent({ analysis }: NewsAnalysisProps) {
+export function NewsAnalysisComponent({ analysis, newsTitle, onClose }: NewsAnalysisProps) {
   const [showKeyFacts, setShowKeyFacts] = useState(true)
+  const [showShareDialog, setShowShareDialog] = useState(false)
 
   // 数据现在是扁平结构
   const analysisData = analysis?.analysis
@@ -109,8 +114,20 @@ export function NewsAnalysisComponent({ analysis }: NewsAnalysisProps) {
   const OverallIcon = overallSentiment.icon
 
   return (
-    <div className="mt-4 p-4 bg-surface/50 rounded-xl border space-y-4">
-      {/* 核心摘要 */}
+    <>
+      <div className="mt-4 p-4 bg-surface/50 rounded-xl border space-y-4 relative">
+        {/* 分享按钮 */}
+        <Button
+          variant="outline"
+          size="sm"
+          className="absolute top-4 right-4 h-8 gap-1 text-xs"
+          onClick={() => setShowShareDialog(true)}
+        >
+          <Share2 className="h-3 w-3" />
+          分享
+        </Button>
+
+        {/* 核心摘要 */}
       <div className="space-y-2">
         <div className="flex items-center gap-2 text-sm font-medium">
           <Info className="h-4 w-4 text-primary" />
@@ -301,6 +318,16 @@ export function NewsAnalysisComponent({ analysis }: NewsAnalysisProps) {
           )}
         </div>
       )}
-    </div>
+      </div>
+
+      {/* 分享弹窗 */}
+      {showShareDialog && (
+        <ShareDialog
+          analysis={analysis}
+          newsTitle={newsTitle || analysis.summary || 'AI解读'}
+          onClose={() => setShowShareDialog(false)}
+        />
+      )}
+    </>
   )
 }

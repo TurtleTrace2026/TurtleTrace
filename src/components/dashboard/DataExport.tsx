@@ -1,7 +1,8 @@
 import { useRef, useState, useEffect } from 'react'
 import { Button } from '../ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
-import { Upload, FileSpreadsheet, FileJson, FileText, BookOpen, Database, Shield, Download } from 'lucide-react'
+import { Input } from '../ui/input'
+import { Upload, FileSpreadsheet, FileJson, FileText, BookOpen, Database, Shield, Download, Bot, Eye, EyeOff, Check } from 'lucide-react'
 import type { Position, ProfitSummary } from '../../types'
 import {
   exportToCSV,
@@ -26,6 +27,12 @@ export function DataExport({ positions, summary, onImport }: DataExportProps) {
   const [importError, setImportError] = useState('')
   const [reviewsCount, setReviewsCount] = useState<number | null>(null)
 
+  // AI智能体配置状态
+  const [aiEndpoint, setAiEndpoint] = useState('')
+  const [aiApiKey, setAiApiKey] = useState('')
+  const [showApiKey, setShowApiKey] = useState(false)
+  const [aiConfigSaved, setAiConfigSaved] = useState(false)
+
   // 加载复盘数量
   useEffect(() => {
     const loadReviewsCount = async () => {
@@ -39,6 +46,22 @@ export function DataExport({ positions, summary, onImport }: DataExportProps) {
     }
     loadReviewsCount()
   }, [])
+
+  // 加载AI配置
+  useEffect(() => {
+    const savedEndpoint = localStorage.getItem('ai-endpoint')
+    const savedApiKey = localStorage.getItem('ai-api-key')
+    if (savedEndpoint) setAiEndpoint(savedEndpoint)
+    if (savedApiKey) setAiApiKey(savedApiKey)
+  }, [])
+
+  // 保存AI配置
+  const handleSaveAiConfig = () => {
+    localStorage.setItem('ai-endpoint', aiEndpoint)
+    localStorage.setItem('ai-api-key', aiApiKey)
+    setAiConfigSaved(true)
+    setTimeout(() => setAiConfigSaved(false), 2000)
+  }
 
   const handleExportCSV = () => {
     if (positions.length === 0) return
@@ -145,157 +168,239 @@ export function DataExport({ positions, summary, onImport }: DataExportProps) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary/10 rounded-lg">
-            <Database className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <CardTitle>数据管理</CardTitle>
-            <CardDescription>
-              导出持仓数据和复盘记录进行备份，或导入之前的备份文件
-            </CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* 导出持仓数据 */}
-          <div className="p-4 border rounded-xl bg-surface/50 space-y-4">
-            <div className="flex items-center gap-2">
-              <Download className="h-4 w-4 text-muted-foreground" />
-              <h4 className="text-sm font-medium">导出持仓数据</h4>
+    <div className="space-y-6">
+      {/* 数据管理卡片 */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Database className="h-5 w-5 text-primary" />
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                onClick={handleExportCSV}
-                disabled={positions.length === 0}
-                className="flex-1"
-              >
-                <FileSpreadsheet className="h-4 w-4 mr-2" />
-                CSV
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleExportJSON}
-                disabled={positions.length === 0}
-                className="flex-1"
-              >
-                <FileJson className="h-4 w-4 mr-2" />
-                JSON
-              </Button>
+            <div>
+              <CardTitle>数据管理</CardTitle>
+              <CardDescription>
+                导出持仓数据和复盘记录进行备份，或导入之前的备份文件
+              </CardDescription>
             </div>
-            {positions.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                添加持仓后可导出数据
-              </p>
-            )}
           </div>
-
-          {/* 导出复盘数据 */}
-          <div className="p-4 border rounded-xl bg-surface/50 space-y-4">
-            <div className="flex items-center justify-between">
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* 导出持仓数据 */}
+            <div className="p-4 border rounded-xl bg-surface/50 space-y-4">
               <div className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4 text-muted-foreground" />
-                <h4 className="text-sm font-medium">导出复盘数据</h4>
+                <Download className="h-4 w-4 text-muted-foreground" />
+                <h4 className="text-sm font-medium">导出持仓数据</h4>
               </div>
-              <span className="text-xs bg-muted px-2 py-1 rounded-full">
-                {reviewsCount ?? '-'} 条
-              </span>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleExportCSV}
+                  disabled={positions.length === 0}
+                  className="flex-1"
+                >
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  CSV
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleExportJSON}
+                  disabled={positions.length === 0}
+                  className="flex-1"
+                >
+                  <FileJson className="h-4 w-4 mr-2" />
+                  JSON
+                </Button>
+              </div>
+              {positions.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  添加持仓后可导出数据
+                </p>
+              )}
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                onClick={handleExportReviewsJSON}
-                className="flex-1"
-              >
-                <FileJson className="h-4 w-4 mr-2" />
-                JSON
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleExportReviewsMarkdown}
-                className="flex-1"
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Markdown
-              </Button>
-            </div>
-          </div>
 
-          {/* 导出完整数据 */}
-          <div className="p-4 border rounded-xl bg-primary/5 space-y-4 md:col-span-2">
-            <div className="flex items-center gap-2">
-              <Shield className="h-4 w-4 text-primary" />
-              <h4 className="text-sm font-medium">导出完整备份</h4>
+            {/* 导出复盘数据 */}
+            <div className="p-4 border rounded-xl bg-surface/50 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="h-4 w-4 text-muted-foreground" />
+                  <h4 className="text-sm font-medium">导出复盘数据</h4>
+                </div>
+                <span className="text-xs bg-muted px-2 py-1 rounded-full">
+                  {reviewsCount ?? '-'} 条
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleExportReviewsJSON}
+                  className="flex-1"
+                >
+                  <FileJson className="h-4 w-4 mr-2" />
+                  JSON
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleExportReviewsMarkdown}
+                  className="flex-1"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Markdown
+                </Button>
+              </div>
             </div>
-            <div className="flex items-center gap-4">
-              <Button
-                variant="default"
-                onClick={handleExportComplete}
-                disabled={positions.length === 0}
-                className="gap-2"
-              >
-                <FileJson className="h-4 w-4" />
-                导出完整备份
-              </Button>
+
+            {/* 导出完整数据 */}
+            <div className="p-4 border rounded-xl bg-primary/5 space-y-4 md:col-span-2">
+              <div className="flex items-center gap-2">
+                <Shield className="h-4 w-4 text-primary" />
+                <h4 className="text-sm font-medium">导出完整备份</h4>
+              </div>
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="default"
+                  onClick={handleExportComplete}
+                  disabled={positions.length === 0}
+                  className="gap-2"
+                >
+                  <FileJson className="h-4 w-4" />
+                  导出完整备份
+                </Button>
+                <p className="text-sm text-muted-foreground">
+                  包含持仓数据和所有复盘记录的完整备份文件
+                </p>
+              </div>
+            </div>
+
+            {/* 导入数据 */}
+            <div className="p-4 border rounded-xl bg-surface/50 space-y-4 md:col-span-2">
+              <div className="flex items-center gap-2">
+                <Upload className="h-4 w-4 text-muted-foreground" />
+                <h4 className="text-sm font-medium">导入备份数据</h4>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  variant="outline"
+                  onClick={handleImportClick}
+                  className="gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  导入完整备份
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".json"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                <Button
+                  variant="outline"
+                  onClick={handleReviewsImportClick}
+                  className="gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  仅导入复盘
+                </Button>
+                <input
+                  ref={reviewsInputRef}
+                  type="file"
+                  accept=".json"
+                  className="hidden"
+                  onChange={handleReviewsFileChange}
+                />
+              </div>
               <p className="text-sm text-muted-foreground">
-                包含持仓数据和所有复盘记录的完整备份文件
+                从之前导出的备份文件恢复数据
               </p>
+              {importError && (
+                <p className="text-sm text-destructive">
+                  {importError}
+                </p>
+              )}
             </div>
           </div>
+        </CardContent>
+      </Card>
 
-          {/* 导入数据 */}
-          <div className="p-4 border rounded-xl bg-surface/50 space-y-4 md:col-span-2">
-            <div className="flex items-center gap-2">
-              <Upload className="h-4 w-4 text-muted-foreground" />
-              <h4 className="text-sm font-medium">导入备份数据</h4>
+      {/* AI智能体配置卡片 */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Bot className="h-5 w-5 text-primary" />
             </div>
-            <div className="flex flex-wrap gap-3">
-              <Button
-                variant="outline"
-                onClick={handleImportClick}
-                className="gap-2"
-              >
-                <Upload className="h-4 w-4" />
-                导入完整备份
-              </Button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".json"
-                className="hidden"
-                onChange={handleFileChange}
-              />
-              <Button
-                variant="outline"
-                onClick={handleReviewsImportClick}
-                className="gap-2"
-              >
-                <Upload className="h-4 w-4" />
-                仅导入复盘
-              </Button>
-              <input
-                ref={reviewsInputRef}
-                type="file"
-                accept=".json"
-                className="hidden"
-                onChange={handleReviewsFileChange}
-              />
+            <div>
+              <CardTitle>AI智能体配置</CardTitle>
+              <CardDescription>
+                配置AI智能体对接参数，用于智能分析和辅助决策
+              </CardDescription>
             </div>
-            <p className="text-sm text-muted-foreground">
-              从之前导出的备份文件恢复数据
-            </p>
-            {importError && (
-              <p className="text-sm text-destructive">
-                {importError}
-              </p>
-            )}
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4 max-w-xl">
+            {/* 对接地址 */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">对接地址</label>
+              <Input
+                type="text"
+                placeholder="请输入AI服务的域名或IP地址，如 https://api.example.com"
+                value={aiEndpoint}
+                onChange={(e) => setAiEndpoint(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                支持域名或IP地址，需包含协议头（http:// 或 https://）
+              </p>
+            </div>
+
+            {/* API Key */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">API Key</label>
+              <div className="relative">
+                <Input
+                  type={showApiKey ? 'text' : 'password'}
+                  placeholder="请输入API密钥"
+                  value={aiApiKey}
+                  onChange={(e) => setAiApiKey(e.target.value)}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowApiKey(!showApiKey)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showApiKey ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                API密钥将被安全存储在本地，请妥善保管
+              </p>
+            </div>
+
+            {/* 保存按钮 */}
+            <div className="flex items-center gap-3 pt-2">
+              <Button onClick={handleSaveAiConfig} className="gap-2">
+                {aiConfigSaved ? (
+                  <>
+                    <Check className="h-4 w-4" />
+                    已保存
+                  </>
+                ) : (
+                  '保存配置'
+                )}
+              </Button>
+              {aiConfigSaved && (
+                <span className="text-sm text-green-600">配置已保存到本地</span>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   )
 }

@@ -78,7 +78,7 @@ function App() {
     { id: 'positions' as const, label: '持仓管理', icon: TrendingUp },
     { id: 'review' as const, label: '复盘管理', icon: BookOpen },
     { id: 'news' as const, label: '新闻快讯', icon: Newspaper },
-    { id: 'data' as const, label: '数据管理', icon: Database },
+    { id: 'data' as const, label: '设置', icon: Database },
   ]
 
   return (

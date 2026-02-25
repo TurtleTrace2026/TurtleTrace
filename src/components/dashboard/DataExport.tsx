@@ -345,12 +345,12 @@ export function DataExport({ positions, summary, onImport }: DataExportProps) {
               <label className="text-sm font-medium">对接地址</label>
               <Input
                 type="text"
-                placeholder="请输入AI服务的域名或IP地址，如 https://api.example.com"
+                placeholder="请输入AI服务的基础地址，如 https://api.example.com"
                 value={aiEndpoint}
                 onChange={(e) => setAiEndpoint(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                支持域名或IP地址，需包含协议头（http:// 或 https://）
+                基础地址（域名或IP），需包含协议头。接口路径: /api/v1/ai/news/analyze
               </p>
             </div>
 

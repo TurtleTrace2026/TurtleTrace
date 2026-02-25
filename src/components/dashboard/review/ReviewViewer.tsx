@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Trash2, Download, Edit, Share2 } from 'lucide-react';
+import { Calendar, Trash2, Download, Edit, Share2, FileText, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Card } from '../../ui/card';
+import { Badge } from '../../ui/badge';
 import { reviewService } from '../../../services/reviewService';
 import type { DailyReview } from '../../../types/review';
 import { ReviewCalendar } from './ReviewCalendar';
 import { ReviewShareDialog } from './ReviewShareDialog';
+import { cn } from '../../../lib/utils';
 
 interface ReviewViewerProps {
   onEditDate: (date: string) => void;
@@ -83,28 +86,43 @@ export function ReviewViewer({ onEditDate }: ReviewViewerProps) {
   return (
     <div className="space-y-6">
       {/* 顶部工具栏 */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <h2 className="text-2xl font-bold">历史复盘</h2>
+      <Card className="p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-info/10 rounded-lg">
+                <FileText className="h-5 w-5 text-info" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold">历史复盘</h2>
+                <p className="text-sm text-muted-foreground">
+                  共 {reviews.length} 条复盘记录
+                </p>
+              </div>
+            </div>
 
-          <button
-            onClick={() => setShowCalendar(!showCalendar)}
-            className="flex items-center gap-2 px-4 py-2 border rounded-md hover:bg-accent transition-colors"
-          >
-            <Calendar className="h-4 w-4" />
-            {selectedDate}
-          </button>
+            <button
+              onClick={() => setShowCalendar(!showCalendar)}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 border rounded-lg transition-all",
+                showCalendar ? "bg-primary/10 border-primary text-primary" : "hover:bg-surface-hover"
+              )}
+            >
+              <Calendar className="h-4 w-4" />
+              <span className="font-mono">{selectedDate}</span>
+            </button>
+          </div>
 
-          <span className="text-sm text-muted-foreground">
-            共 {reviews.length} 条复盘记录
-          </span>
+          <Badge variant="outline" className="text-sm px-3 py-1">
+            {reviews.length} 条记录
+          </Badge>
         </div>
-      </div>
+      </Card>
 
       {/* 日历弹窗 */}
       {showCalendar && (
-        <div className="absolute z-50 mt-2">
-          <div className="border rounded-lg bg-background shadow-lg p-2">
+        <div className="relative z-50">
+          <div className="border rounded-xl bg-card shadow-lg p-3">
             <ReviewCalendar
               reviews={reviews}
               selectedDate={selectedDate}
@@ -117,55 +135,74 @@ export function ReviewViewer({ onEditDate }: ReviewViewerProps) {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* 左侧：日期列表 */}
         <div className="lg:col-span-1">
-          <div className="border rounded-lg bg-card p-4">
-            <h3 className="font-semibold mb-3">复盘日期</h3>
-            <div className="space-y-1 max-h-[500px] overflow-y-auto">
+          <Card className="p-4 h-fit">
+            <h3 className="font-semibold mb-3 flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              复盘日期
+            </h3>
+            <div className="space-y-1 max-h-[500px] overflow-y-auto scrollbar-thin">
               {reviewDates.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground text-sm">
                   暂无复盘记录
                 </div>
               ) : (
-                reviewDates.map(date => (
-                  <button
-                    key={date}
-                    onClick={() => handleSelectDate(date)}
-                    className={`w-full text-left px-3 py-2 rounded-md transition-colors ${
-                      selectedDate === date
-                        ? 'bg-primary text-primary-foreground'
-                        : 'hover:bg-accent'
-                    }`}
-                  >
-                    <div className="font-medium">{date}</div>
-                    <div className="text-xs opacity-70">
-                      {reviews.find(r => r.date === date)?.summary?.slice(0, 20) || '无总结'}
-                    </div>
-                  </button>
-                ))
+                reviewDates.map(date => {
+                  const review = reviews.find(r => r.date === date);
+                  const hasProfit = review?.positionData?.dailySummary?.totalProfit ?? 0;
+                  const profitColor = hasProfit >= 0 ? 'text-up' : 'text-down';
+
+                  return (
+                    <button
+                      key={date}
+                      onClick={() => handleSelectDate(date)}
+                      className={cn(
+                        "w-full text-left px-3 py-2.5 rounded-lg transition-all border",
+                        selectedDate === date
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'hover:bg-surface-hover border-transparent'
+                      )}
+                    >
+                      <div className="font-medium font-mono">{date}</div>
+                      <div className={cn("text-xs mt-1 truncate", selectedDate === date ? "opacity-80" : "text-muted-foreground")}>
+                        {review?.summary?.slice(0, 20) || '无总结'}
+                      </div>
+                      {review?.positionData && (
+                        <div className={cn("text-xs mt-1 font-mono", selectedDate === date ? "" : profitColor)}>
+                          {hasProfit >= 0 ? '+' : ''}¥{hasProfit.toFixed(2)}
+                        </div>
+                      )}
+                    </button>
+                  );
+                })
               )}
             </div>
-          </div>
+          </Card>
         </div>
 
         {/* 右侧：复盘内容 */}
         <div className="lg:col-span-3">
           {!selectedReview ? (
-            <div className="border rounded-lg bg-card p-12 text-center">
-              <div className="text-muted-foreground mb-4">选择一个日期查看复盘</div>
+            <Card className="p-12 text-center">
+              <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground/30" />
+              <p className="text-muted-foreground mb-4">选择一个日期查看复盘</p>
               {selectedDate && !reviews.find(r => r.date === selectedDate) && (
                 <button
                   onClick={() => onEditDate(selectedDate)}
-                  className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+                  className="px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
                 >
                   创建该日复盘
                 </button>
               )}
-            </div>
+            </Card>
           ) : (
-            <div className="border rounded-lg bg-card">
+            <Card className="overflow-hidden">
               {/* 复盘头部 */}
-              <div className="border-b p-4 flex items-center justify-between">
+              <div className="border-b bg-surface/50 p-4 flex items-center justify-between">
                 <div>
-                  <h3 className="text-xl font-bold">{selectedReview.date} 复盘</h3>
+                  <h3 className="text-xl font-bold flex items-center gap-2">
+                    {selectedReview.date} 复盘
+                    <Badge variant="outline" className="text-xs">每日</Badge>
+                  </h3>
                   <div className="text-sm text-muted-foreground mt-1">
                     创建于 {new Date(selectedReview.createdAt).toLocaleString('zh-CN')}
                   </div>
@@ -173,45 +210,50 @@ export function ReviewViewer({ onEditDate }: ReviewViewerProps) {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setShareReview(selectedReview)}
-                    className="flex items-center gap-1 px-3 py-1.5 border rounded-md hover:bg-accent transition-colors text-sm"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-surface-hover transition-colors text-sm"
+                    title="分享复盘"
                   >
                     <Share2 className="w-4 h-4" />
-                    分享
+                    <span className="hidden sm:inline">分享</span>
                   </button>
                   <button
                     onClick={() => onEditDate(selectedReview.date)}
-                    className="flex items-center gap-1 px-3 py-1.5 border rounded-md hover:bg-accent transition-colors text-sm"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-surface-hover transition-colors text-sm"
+                    title="编辑复盘"
                   >
                     <Edit className="w-4 h-4" />
-                    编辑
+                    <span className="hidden sm:inline">编辑</span>
                   </button>
                   <button
                     onClick={handleExportMarkdown}
-                    className="flex items-center gap-1 px-3 py-1.5 border rounded-md hover:bg-accent transition-colors text-sm"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-surface-hover transition-colors text-sm"
+                    title="导出为 Markdown"
                   >
                     <Download className="w-4 h-4" />
-                    MD
+                    <span className="hidden sm:inline">MD</span>
                   </button>
                   <button
                     onClick={handleExportPDF}
-                    className="flex items-center gap-1 px-3 py-1.5 border rounded-md hover:bg-accent transition-colors text-sm"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-surface-hover transition-colors text-sm"
+                    title="导出为 PDF"
                   >
                     <Download className="w-4 h-4" />
-                    PDF
+                    <span className="hidden sm:inline">PDF</span>
                   </button>
                   <button
                     onClick={handleDelete}
                     disabled={isDeleting}
-                    className="flex items-center gap-1 px-3 py-1.5 border border-red-200 text-red-600 rounded-md hover:bg-red-50 transition-colors text-sm disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-destructive hover:bg-destructive/10 transition-colors text-sm disabled:opacity-50"
+                    title="删除复盘"
                   >
                     <Trash2 className="w-4 h-4" />
-                    删除
+                    <span className="hidden sm:inline">删除</span>
                   </button>
                 </div>
               </div>
 
               {/* 复盘内容 */}
-              <div className="p-6 space-y-6 max-h-[600px] overflow-y-auto">
+              <div className="p-6 space-y-6 max-h-[600px] overflow-y-auto scrollbar-thin">
                 {/* 大盘指数 */}
                 {selectedReview.marketData?.indices && selectedReview.marketData.indices.length > 0 && (
                   <div className="space-y-3">
@@ -222,25 +264,27 @@ export function ReviewViewer({ onEditDate }: ReviewViewerProps) {
                       {selectedReview.marketData.indices.map((idx, index) => {
                         const isPositive = idx.change >= 0;
                         const isFlat = Math.abs(idx.change) < 0.01;
+                        const trendColor = isFlat ? 'text-flat' : isPositive ? 'text-up' : 'text-down';
+                        const trendBg = isFlat ? 'bg-flat/10' : isPositive ? 'bg-up/10' : 'bg-down/10';
+                        const TrendIcon = isFlat ? Minus : isPositive ? TrendingUp : TrendingDown;
 
                         return (
                           <div
                             key={index}
-                            className="p-3 border rounded-lg bg-accent/30"
+                            className={cn("p-3 rounded-lg border transition-all", trendBg)}
                           >
                             <div className="text-xs text-muted-foreground mb-1 truncate" title={idx.name}>
                               {idx.name}
                             </div>
-                            <div className="text-sm mb-1">
+                            <div className="text-sm mb-1 font-mono">
                               {idx.code}
                             </div>
-                            <div className={`text-sm font-medium ${
-                              isFlat ? 'text-muted-foreground' : isPositive ? 'text-red-500' : 'text-green-500'
-                            }`}>
+                            <div className={cn("text-sm font-medium flex items-center gap-1", trendColor)}>
+                              <TrendIcon className="h-3 w-3" />
                               {isFlat ? '0.00%' : `${isPositive ? '+' : ''}${idx.change.toFixed(2)}%`}
                             </div>
                             {idx.changeAmount !== undefined && (
-                              <div className="text-xs text-muted-foreground">
+                              <div className="text-xs text-muted-foreground font-mono">
                                 {isPositive ? '+' : ''}{idx.changeAmount.toFixed(2)} 点
                               </div>
                             )}
@@ -265,24 +309,24 @@ export function ReviewViewer({ onEditDate }: ReviewViewerProps) {
                 {selectedReview.positionData && (
                   <div className="space-y-3">
                     <h4 className="font-semibold flex items-center gap-2">💼 持仓盈亏</h4>
-                    <div className="grid grid-cols-4 gap-4 text-center p-3 bg-accent/50 rounded-lg">
-                      <div>
-                        <div className="text-xs text-muted-foreground">当日盈亏</div>
-                        <div className={`text-lg font-bold ${selectedReview.positionData.dailySummary.totalProfit >= 0 ? 'text-red-500' : 'text-green-500'}`}>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className={cn("text-center p-4 rounded-lg border", selectedReview.positionData.dailySummary.totalProfit >= 0 ? "bg-up/5 border-up/20" : "bg-down/5 border-down/20")}>
+                        <div className="text-xs text-muted-foreground mb-1">当日盈亏</div>
+                        <div className={cn("text-lg font-bold font-mono", selectedReview.positionData.dailySummary.totalProfit >= 0 ? 'text-up' : 'text-down')}>
                           {selectedReview.positionData.dailySummary.totalProfit >= 0 ? '+' : ''}¥{selectedReview.positionData.dailySummary.totalProfit.toFixed(2)}
                         </div>
                       </div>
-                      <div>
-                        <div className="text-xs text-muted-foreground">盈利</div>
-                        <div className="text-lg font-bold text-red-500">{selectedReview.positionData.dailySummary.winCount}</div>
+                      <div className="text-center p-4 rounded-lg border bg-surface/50">
+                        <div className="text-xs text-muted-foreground mb-1">盈利</div>
+                        <div className="text-lg font-bold font-mono text-up">{selectedReview.positionData.dailySummary.winCount}</div>
                       </div>
-                      <div>
-                        <div className="text-xs text-muted-foreground">亏损</div>
-                        <div className="text-lg font-bold text-green-500">{selectedReview.positionData.dailySummary.lossCount}</div>
+                      <div className="text-center p-4 rounded-lg border bg-surface/50">
+                        <div className="text-xs text-muted-foreground mb-1">亏损</div>
+                        <div className="text-lg font-bold font-mono text-down">{selectedReview.positionData.dailySummary.lossCount}</div>
                       </div>
-                      <div>
-                        <div className="text-xs text-muted-foreground">胜率</div>
-                        <div className="text-lg font-bold">{(selectedReview.positionData.dailySummary.winRate * 100).toFixed(1)}%</div>
+                      <div className="text-center p-4 rounded-lg border bg-surface/50">
+                        <div className="text-xs text-muted-foreground mb-1">胜率</div>
+                        <div className="text-lg font-bold font-mono">{(selectedReview.positionData.dailySummary.winRate * 100).toFixed(1)}%</div>
                       </div>
                     </div>
 
@@ -291,7 +335,7 @@ export function ReviewViewer({ onEditDate }: ReviewViewerProps) {
                       <div className="space-y-2">
                         <h5 className="text-sm font-medium text-muted-foreground">个股明细</h5>
                         <div className="space-y-2">
-                          <div className="grid grid-cols-12 gap-2 text-sm text-muted-foreground px-3">
+                          <div className="grid grid-cols-12 gap-2 text-sm text-muted-foreground px-3 py-2 bg-surface/50 rounded-t-lg font-medium">
                             <div className="col-span-2">股票</div>
                             <div className="col-span-1 text-right">涨跌幅</div>
                             <div className="col-span-1 text-right">当日盈亏</div>
@@ -304,56 +348,57 @@ export function ReviewViewer({ onEditDate }: ReviewViewerProps) {
                           {selectedReview.positionData.positions.map((pos) => {
                             const isPositive = pos.change >= 0;
                             const dailyProfitPositive = pos.dailyProfit >= 0;
+                            const totalProfitPositive = pos.totalProfit >= 0;
                             const nextHighPositive = (pos.nextHigh || 0) >= pos.currentPrice;
 
                             return (
                               <div
                                 key={pos.symbol}
-                                className="grid grid-cols-12 gap-2 px-3 py-2 items-center border-b last:border-b-0 bg-accent/30"
+                                className="grid grid-cols-12 gap-2 px-3 py-2.5 items-center border-b last:border-b-0 bg-surface/30 hover:bg-surface/50 transition-colors"
                               >
                                 <div className="col-span-2">
                                   <div className="font-medium">{pos.name}</div>
-                                  <div className="text-xs text-muted-foreground">{pos.symbol}</div>
+                                  <div className="text-xs text-muted-foreground font-mono">{pos.symbol}</div>
                                 </div>
-                                <div className={`col-span-1 text-right ${isPositive ? 'text-red-500' : 'text-green-500'}`}>
+                                <div className={cn("col-span-1 text-right font-mono text-sm", isPositive ? 'text-up' : 'text-down')}>
                                   {isPositive ? '+' : ''}{pos.change.toFixed(2)}%
                                 </div>
-                                <div className={`col-span-1 text-right font-medium ${dailyProfitPositive ? 'text-red-500' : 'text-green-500'}`}>
+                                <div className={cn("col-span-1 text-right font-medium font-mono text-sm", dailyProfitPositive ? 'text-up' : 'text-down')}>
                                   {pos.dailyProfit >= 0 ? '+' : ''}¥{pos.dailyProfit.toFixed(2)}
                                 </div>
-                                <div className={`col-span-1 text-right text-sm ${pos.totalProfit >= 0 ? 'text-red-500' : 'text-green-500'}`}>
+                                <div className={cn("col-span-1 text-right text-sm font-mono", totalProfitPositive ? 'text-up' : 'text-down')}>
                                   {pos.totalProfit >= 0 ? '+' : ''}¥{pos.totalProfit.toFixed(2)}
                                 </div>
-                                <div className="col-span-1 text-right text-sm">
+                                <div className="col-span-1 text-right text-sm font-mono">
                                   {pos.quantity}
                                 </div>
-                                <div className="col-span-1 text-right text-sm">
+                                <div className="col-span-1 text-right text-sm font-mono">
                                   <div>¥{pos.currentPrice.toFixed(2)}</div>
                                   <div className="text-xs text-muted-foreground">¥{pos.costPrice.toFixed(2)}</div>
                                 </div>
                                 <div className="col-span-3 text-center">
-                                  <div className="grid grid-cols-4 gap-1 text-xs">
+                                  <div className="grid grid-cols-4 gap-1 text-xs font-mono">
                                     <div>
                                       <div className="text-muted-foreground">最高</div>
-                                      <div className={`font-medium ${nextHighPositive ? 'text-red-500' : 'text-green-500'}`}>
+                                      <div className={cn("font-medium", nextHighPositive ? 'text-up' : 'text-down')}>
                                         ¥{(pos.nextHigh || 0).toFixed(2)}
                                       </div>
                                     </div>
                                     <div>
                                       <div className="text-muted-foreground">最低</div>
-                                      <div className={`font-medium ${!nextHighPositive ? 'text-red-500' : 'text-green-500'}`}>
+                                      <div className={cn("font-medium", !nextHighPositive ? 'text-up' : 'text-down')}>
                                         ¥{(pos.nextLow || 0).toFixed(2)}
                                       </div>
                                     </div>
                                     <div>
                                       <div className="text-muted-foreground">次高</div>
-                                      <div className={`font-medium ${nextHighPositive ? 'text-red-500' : 'text-green-500'}`}>
+                                      <div className={cn("font-medium", nextHighPositive ? 'text-up' : 'text-down')}>
                                         ¥{(pos.nextSecondaryHigh || 0).toFixed(2)}
                                       </div>
                                     </div>
                                     <div>
                                       <div className="text-muted-foreground">次低</div>
-                                      <div className={`font-medium ${!nextHighPositive ? 'text-red-500' : 'text-green-500'}`}>
+                                      <div className={cn("font-medium", !nextHighPositive ? 'text-up' : 'text-down')}>
                                         ¥{(pos.nextSecondaryLow || 0).toFixed(2)}
                                       </div>
                                     </div>
@@ -384,20 +429,24 @@ export function ReviewViewer({ onEditDate }: ReviewViewerProps) {
                           {selectedReview.operations.transactions.map((tx, index) => (
                             <div
                               key={index}
-                              className="flex items-center justify-between px-3 py-2 bg-accent/30 rounded-lg"
+                              className={cn(
+                                "flex items-center justify-between px-4 py-3 rounded-lg border transition-all",
+                                tx.type === 'buy' ? 'bg-up/5 border-up/20' : 'bg-down/5 border-down/20'
+                              )}
                             >
                               <div className="flex items-center gap-3">
-                                <span className={`px-2 py-1 text-xs font-medium rounded ${
-                                  tx.type === 'buy' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
-                                }`}>
+                                <span className={cn(
+                                  "px-2.5 py-1 text-xs font-medium rounded-md",
+                                  tx.type === 'buy' ? 'bg-up/20 text-up' : 'bg-down/20 text-down'
+                                )}>
                                   {tx.type === 'buy' ? '买入' : '卖出'}
                                 </span>
                                 <div>
                                   <div className="font-medium">{tx.name}</div>
-                                  <div className="text-xs text-muted-foreground">{tx.symbol}</div>
+                                  <div className="text-xs text-muted-foreground font-mono">{tx.symbol}</div>
                                 </div>
                               </div>
-                              <div className="text-right text-sm">
+                              <div className="text-right text-sm font-mono">
                                 <div>¥{tx.price.toFixed(2)} × {tx.quantity}股</div>
                                 <div className="text-muted-foreground">¥{tx.amount.toFixed(2)}</div>
                               </div>
@@ -408,24 +457,24 @@ export function ReviewViewer({ onEditDate }: ReviewViewerProps) {
                     )}
 
                     {/* 操作反思 */}
-                    <div className="space-y-2 pt-2 border-t">
+                    <div className="space-y-3 pt-3 border-t">
                       <h5 className="text-sm font-medium text-muted-foreground">操作反思</h5>
                       {selectedReview.operations.reflection.whatWorked && (
-                        <div className="text-sm">
-                          <span className="text-green-600 font-medium">✓ 做得好的地方: </span>
-                          {selectedReview.operations.reflection.whatWorked}
+                        <div className="flex gap-2 text-sm p-3 bg-success/10 rounded-lg border border-success/20">
+                          <span className="text-success font-medium shrink-0">✓ 做得好的:</span>
+                          <span className="text-muted-foreground">{selectedReview.operations.reflection.whatWorked}</span>
                         </div>
                       )}
                       {selectedReview.operations.reflection.whatFailed && (
-                        <div className="text-sm">
-                          <span className="text-red-600 font-medium">✗ 需要改进: </span>
-                          {selectedReview.operations.reflection.whatFailed}
+                        <div className="flex gap-2 text-sm p-3 bg-destructive/10 rounded-lg border border-destructive/20">
+                          <span className="text-destructive font-medium shrink-0">✗ 需要改进:</span>
+                          <span className="text-muted-foreground">{selectedReview.operations.reflection.whatFailed}</span>
                         </div>
                       )}
                       {selectedReview.operations.reflection.lessons && (
-                        <div className="text-sm">
-                          <span className="text-yellow-600 font-medium">💡 经验教训: </span>
-                          {selectedReview.operations.reflection.lessons}
+                        <div className="flex gap-2 text-sm p-3 bg-warning/10 rounded-lg border border-warning/20">
+                          <span className="text-warning font-medium shrink-0">💡 经验教训:</span>
+                          <span className="text-muted-foreground">{selectedReview.operations.reflection.lessons}</span>
                         </div>
                       )}
                     </div>
@@ -436,7 +485,7 @@ export function ReviewViewer({ onEditDate }: ReviewViewerProps) {
                 {selectedReview.summary && (
                   <div className="space-y-2">
                     <h4 className="font-semibold flex items-center gap-2">💭 总结感悟</h4>
-                    <div className="text-sm whitespace-pre-wrap bg-accent/50 rounded-lg p-4">
+                    <div className="text-sm whitespace-pre-wrap bg-surface/50 rounded-lg p-4 border">
                       {selectedReview.summary}
                     </div>
                   </div>
@@ -444,12 +493,13 @@ export function ReviewViewer({ onEditDate }: ReviewViewerProps) {
 
                 {/* 如果没有任何内容 */}
                 {!selectedReview.marketData && !selectedReview.positionData && !selectedReview.operations && !selectedReview.summary && (
-                  <div className="text-center py-8 text-muted-foreground">
+                  <div className="text-center py-12 text-muted-foreground">
+                    <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
                     该复盘记录暂无内容
                   </div>
                 )}
               </div>
-            </div>
+            </Card>
           )}
         </div>
       </div>

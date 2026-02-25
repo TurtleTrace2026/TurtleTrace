@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { X, Share2, Check } from 'lucide-react';
+import { cn } from '../../../lib/utils';
 import type { DailyReview } from '../../../types/review';
 import TurtleTraceLogo from '../../../assets/TurtleTraceLogo.png';
 
@@ -121,18 +122,25 @@ export function ReviewShareDialog({ review, isOpen, onClose }: ReviewShareDialog
     return date.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' });
   };
 
+  // 获取盈亏颜色类
+  const getProfitColor = (value: number) => {
+    return value >= 0 ? 'text-up' : 'text-down';
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-background rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-background rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         {/* 头部 */}
-        <div className="sticky top-0 bg-background border-b px-6 py-4 flex items-center justify-between z-10">
+        <div className="sticky top-0 bg-background border-b px-6 py-4 flex items-center justify-between z-10 rounded-t-xl">
           <div className="flex items-center gap-2">
-            <Share2 className="h-5 w-5 text-primary" />
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Share2 className="h-5 w-5 text-primary" />
+            </div>
             <h2 className="text-lg font-semibold">分享复盘</h2>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-accent rounded-md transition-colors"
+            className="p-2 hover:bg-surface-hover rounded-lg transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
@@ -181,13 +189,13 @@ export function ReviewShareDialog({ review, isOpen, onClose }: ReviewShareDialog
                   <div className="text-xs text-muted-foreground mb-3">持仓盈亏</div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="text-center">
-                      <div className="text-2xl font-bold ${getProfitColor(review.positionData.dailySummary.totalProfit)}">
+                      <div className={cn("text-2xl font-bold font-mono tabular-nums", getProfitColor(review.positionData.dailySummary.totalProfit))}>
                         {review.positionData.dailySummary.totalProfit >= 0 ? '+' : ''}¥{review.positionData.dailySummary.totalProfit.toFixed(0)}
                       </div>
                       <div className="text-xs text-muted-foreground">当日盈亏</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-bold">
+                      <div className="text-2xl font-bold font-mono tabular-nums">
                         {(review.positionData.dailySummary.winRate * 100).toFixed(0)}%
                       </div>
                       <div className="text-xs text-muted-foreground">胜率</div>
@@ -202,14 +210,14 @@ export function ReviewShareDialog({ review, isOpen, onClose }: ReviewShareDialog
                   <div className="text-xs text-muted-foreground mb-2">操作反思</div>
                   {review.operations.reflection.whatWorked && (
                     <div className="text-sm mb-2">
-                      <span className="text-green-600">✓ </span>
+                      <span className="text-up">✓ </span>
                       {review.operations.reflection.whatWorked.slice(0, 40)}
                       {review.operations.reflection.whatWorked.length > 40 ? '...' : ''}
                     </div>
                   )}
                   {review.operations.reflection.lessons && (
                     <div className="text-sm">
-                      <span className="text-yellow-600">💡 </span>
+                      <span className="text-yellow-500">💡 </span>
                       {review.operations.reflection.lessons.slice(0, 40)}
                       {review.operations.reflection.lessons.length > 40 ? '...' : ''}
                     </div>
@@ -240,7 +248,7 @@ export function ReviewShareDialog({ review, isOpen, onClose }: ReviewShareDialog
               <button
                 key={platform.id}
                 onClick={() => handleShare(platform)}
-                className={`flex flex-col items-center gap-2 p-4 rounded-lg ${platform.color} text-white hover:opacity-90 transition-opacity`}
+                className={cn("flex flex-col items-center gap-2 p-4 rounded-lg text-white hover:opacity-90 transition-opacity", platform.color)}
               >
                 <span className="text-2xl">{platform.icon}</span>
                 <span className="text-sm font-medium">

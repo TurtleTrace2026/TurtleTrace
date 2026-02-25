@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect } from 'react'
 import { Button } from '../ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
-import { Upload, FileSpreadsheet, FileJson, FileText, BookOpen } from 'lucide-react'
+import { Upload, FileSpreadsheet, FileJson, FileText, BookOpen, Database, Shield, Download } from 'lucide-react'
 import type { Position, ProfitSummary } from '../../types'
 import {
   exportToCSV,
@@ -147,128 +147,149 @@ export function DataExport({ positions, summary, onImport }: DataExportProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>数据管理</CardTitle>
-        <CardDescription>
-          导出持仓数据和复盘记录进行备份，或导入之前的备份文件
-        </CardDescription>
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <Database className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <CardTitle>数据管理</CardTitle>
+            <CardDescription>
+              导出持仓数据和复盘记录进行备份，或导入之前的备份文件
+            </CardDescription>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
+        <div className="grid gap-6 md:grid-cols-2">
           {/* 导出持仓数据 */}
-          <div>
-            <h4 className="text-sm font-medium mb-3">导出持仓数据</h4>
-            <div className="flex flex-wrap gap-3">
+          <div className="p-4 border rounded-xl bg-surface/50 space-y-4">
+            <div className="flex items-center gap-2">
+              <Download className="h-4 w-4 text-muted-foreground" />
+              <h4 className="text-sm font-medium">导出持仓数据</h4>
+            </div>
+            <div className="flex flex-wrap gap-2">
               <Button
                 variant="outline"
                 onClick={handleExportCSV}
                 disabled={positions.length === 0}
+                className="flex-1"
               >
                 <FileSpreadsheet className="h-4 w-4 mr-2" />
-                导出 CSV
+                CSV
               </Button>
               <Button
                 variant="outline"
                 onClick={handleExportJSON}
                 disabled={positions.length === 0}
+                className="flex-1"
               >
                 <FileJson className="h-4 w-4 mr-2" />
-                导出 JSON
+                JSON
               </Button>
             </div>
             {positions.length === 0 && (
-              <p className="text-sm text-muted-foreground mt-2">
+              <p className="text-sm text-muted-foreground">
                 添加持仓后可导出数据
               </p>
             )}
           </div>
 
           {/* 导出复盘数据 */}
-          <div className="border-t pt-4">
-            <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-              <BookOpen className="h-4 w-4" />
-              导出每日复盘
-              <span className="text-xs text-muted-foreground">
-                ({reviewsCount ?? '-'} 条记录)
+          <div className="p-4 border rounded-xl bg-surface/50 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4 text-muted-foreground" />
+                <h4 className="text-sm font-medium">导出复盘数据</h4>
+              </div>
+              <span className="text-xs bg-muted px-2 py-1 rounded-full">
+                {reviewsCount ?? '-'} 条
               </span>
-            </h4>
-            <div className="flex flex-wrap gap-3">
+            </div>
+            <div className="flex flex-wrap gap-2">
               <Button
                 variant="outline"
                 onClick={handleExportReviewsJSON}
+                className="flex-1"
               >
                 <FileJson className="h-4 w-4 mr-2" />
-                导出 JSON
+                JSON
               </Button>
               <Button
                 variant="outline"
                 onClick={handleExportReviewsMarkdown}
+                className="flex-1"
               >
                 <FileText className="h-4 w-4 mr-2" />
-                导出 Markdown
+                Markdown
               </Button>
             </div>
           </div>
 
           {/* 导出完整数据 */}
-          <div className="border-t pt-4">
-            <h4 className="text-sm font-medium mb-3">导出完整数据</h4>
-            <Button
-              variant="default"
-              onClick={handleExportComplete}
-              disabled={positions.length === 0}
-            >
-              <FileJson className="h-4 w-4 mr-2" />
-              导出完整备份
-            </Button>
-            <p className="text-sm text-muted-foreground mt-2">
-              包含持仓数据和所有复盘记录的完整备份
-            </p>
+          <div className="p-4 border rounded-xl bg-primary/5 space-y-4 md:col-span-2">
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-primary" />
+              <h4 className="text-sm font-medium">导出完整备份</h4>
+            </div>
+            <div className="flex items-center gap-4">
+              <Button
+                variant="default"
+                onClick={handleExportComplete}
+                disabled={positions.length === 0}
+                className="gap-2"
+              >
+                <FileJson className="h-4 w-4" />
+                导出完整备份
+              </Button>
+              <p className="text-sm text-muted-foreground">
+                包含持仓数据和所有复盘记录的完整备份文件
+              </p>
+            </div>
           </div>
 
-          {/* 导入持仓数据 */}
-          <div className="border-t pt-4">
-            <h4 className="text-sm font-medium mb-3">导入持仓数据</h4>
-            <Button
-              variant="outline"
-              onClick={handleImportClick}
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              导入备份文件
-            </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".json"
-              className="hidden"
-              onChange={handleFileChange}
-            />
-            <p className="text-sm text-muted-foreground mt-2">
-              从之前导出的备份文件恢复数据（支持复盘数据）
-            </p>
-          </div>
-
-          {/* 导入复盘数据 */}
-          <div className="border-t pt-4">
-            <h4 className="text-sm font-medium mb-3">导入复盘数据</h4>
-            <Button
-              variant="outline"
-              onClick={handleReviewsImportClick}
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              导入复盘文件
-            </Button>
-            <input
-              ref={reviewsInputRef}
-              type="file"
-              accept=".json"
-              className="hidden"
-              onChange={handleReviewsFileChange}
-            />
-            <p className="text-sm text-muted-foreground mt-2">
-              从复盘数据文件中导入复盘记录
+          {/* 导入数据 */}
+          <div className="p-4 border rounded-xl bg-surface/50 space-y-4 md:col-span-2">
+            <div className="flex items-center gap-2">
+              <Upload className="h-4 w-4 text-muted-foreground" />
+              <h4 className="text-sm font-medium">导入备份数据</h4>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button
+                variant="outline"
+                onClick={handleImportClick}
+                className="gap-2"
+              >
+                <Upload className="h-4 w-4" />
+                导入完整备份
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+              <Button
+                variant="outline"
+                onClick={handleReviewsImportClick}
+                className="gap-2"
+              >
+                <Upload className="h-4 w-4" />
+                仅导入复盘
+              </Button>
+              <input
+                ref={reviewsInputRef}
+                type="file"
+                accept=".json"
+                className="hidden"
+                onChange={handleReviewsFileChange}
+              />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              从之前导出的备份文件恢复数据
             </p>
             {importError && (
-              <p className="text-sm text-destructive mt-2">
+              <p className="text-sm text-destructive">
                 {importError}
               </p>
             )}

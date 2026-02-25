@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { X, Share2, Image as ImageIcon, Check } from 'lucide-react';
+import { cn } from '../../lib/utils';
 import type { ProfitSummary } from '../../types';
 import { formatCurrency, formatPercent } from '../../lib/utils';
 import TurtleTraceLogo from '../../assets/TurtleTraceLogo.png';
@@ -181,16 +182,18 @@ export function ShareDialog({ summary, isOpen, onClose }: ShareDialogProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-background rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-background rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         {/* 头部 */}
-        <div className="sticky top-0 bg-background border-b px-6 py-4 flex items-center justify-between z-10">
+        <div className="sticky top-0 bg-background border-b px-6 py-4 flex items-center justify-between z-10 rounded-t-xl">
           <div className="flex items-center gap-2">
-            <Share2 className="h-5 w-5 text-primary" />
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Share2 className="h-5 w-5 text-primary" />
+            </div>
             <h2 className="text-lg font-semibold">分享我的收益</h2>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-accent rounded-md transition-colors"
+            className="p-2 hover:bg-surface-hover rounded-lg transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
@@ -199,16 +202,17 @@ export function ShareDialog({ summary, isOpen, onClose }: ShareDialogProps) {
         <div className="p-6 space-y-6">
           {/* 模板选择器 */}
           <div className="flex justify-center">
-            <div className="inline-flex bg-muted p-1 rounded-lg">
+            <div className="inline-flex bg-surface p-1 rounded-lg border">
               {SHARE_TEMPLATES.map((template) => (
                 <button
                   key={template.id}
                   onClick={() => handleTemplateChange(template.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all ${
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 rounded-md transition-all",
                     selectedTemplate === template.id
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-surface-hover'
+                  )}
                 >
                   <span>{template.icon}</span>
                   <span className="text-sm font-medium">{template.name}</span>
@@ -251,13 +255,13 @@ export function ShareDialog({ summary, isOpen, onClose }: ShareDialogProps) {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-center">
                       <div className="text-xs text-muted-foreground mb-1">总盈亏</div>
-                      <div className={`text-xl font-bold ${isPositive ? 'text-red-500' : 'text-green-500'}`}>
+                      <div className={cn("text-xl font-bold font-mono tabular-nums", isPositive ? 'text-up' : 'text-down')}>
                         {isPositive ? '+' : ''}{formatCurrency(totalProfitWithCleared)}
                       </div>
                     </div>
                     <div className="text-center">
                       <div className="text-xs text-muted-foreground mb-1">收益率</div>
-                      <div className={`text-xl font-bold ${isPositive ? 'text-red-500' : 'text-green-500'}`}>
+                      <div className={cn("text-xl font-bold font-mono tabular-nums", isPositive ? 'text-up' : 'text-down')}>
                         {isPositive ? '+' : ''}{formatPercent(totalProfitPercentWithCleared)}
                       </div>
                     </div>
@@ -267,7 +271,7 @@ export function ShareDialog({ summary, isOpen, onClose }: ShareDialogProps) {
                 <div className="bg-white dark:bg-slate-800 rounded-xl p-4 mb-4 shadow-sm">
                   <div className="text-center mb-4">
                     <div className="text-sm text-muted-foreground mb-2">收益率</div>
-                    <div className={`text-4xl font-bold ${isPositive ? 'text-red-500' : 'text-green-500'}`}>
+                    <div className={cn("text-4xl font-bold font-mono tabular-nums", isPositive ? 'text-up' : 'text-down')}>
                       {isPositive ? '+' : ''}{formatPercent(totalProfitPercentWithCleared)}
                     </div>
                   </div>
@@ -276,17 +280,17 @@ export function ShareDialog({ summary, isOpen, onClose }: ShareDialogProps) {
                     <div className="flex justify-center gap-6 mt-4 pt-4 border-t">
                       <div className="text-center">
                         <div className="text-xs text-muted-foreground mb-1">持仓数量</div>
-                        <div className="text-xl font-bold">{positions.length}</div>
+                        <div className="text-xl font-bold font-mono tabular-nums">{positions.length}</div>
                       </div>
                       <div className="text-center">
                         <div className="text-xs text-muted-foreground mb-1">盈利股票</div>
-                        <div className="text-xl font-bold text-red-500">
+                        <div className="text-xl font-bold font-mono tabular-nums text-up">
                           {positions.filter(p => p.profit > 0).length}
                         </div>
                       </div>
                       <div className="text-center">
                         <div className="text-xs text-muted-foreground mb-1">亏损股票</div>
-                        <div className="text-xl font-bold text-green-500">
+                        <div className="text-xl font-bold font-mono tabular-nums text-down">
                           {positions.filter(p => p.profit < 0).length}
                         </div>
                       </div>
@@ -308,17 +312,18 @@ export function ShareDialog({ summary, isOpen, onClose }: ShareDialogProps) {
                       .map((pos) => (
                         <div
                           key={pos.symbol}
-                          className={`px-2 py-1 rounded text-xs font-medium ${
+                          className={cn(
+                            "px-2 py-1 rounded text-xs font-medium",
                             pos.profitPercent >= 0
-                              ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                              : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                          }`}
+                              ? 'bg-up/20 text-up'
+                              : 'bg-down/20 text-down'
+                          )}
                         >
                           {pos.name} {pos.profitPercent >= 0 ? '+' : ''}{formatPercent(pos.profitPercent)}
                         </div>
                       ))}
                     {positions.length > 4 && (
-                      <div className="px-2 py-1 rounded text-xs bg-slate-100 text-slate-600">
+                      <div className="px-2 py-1 rounded text-xs bg-surface text-muted-foreground">
                         +{positions.length - 4}
                       </div>
                     )}

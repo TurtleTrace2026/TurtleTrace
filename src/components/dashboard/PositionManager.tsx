@@ -17,6 +17,7 @@ import {
   Tag as TagIcon,
   Check,
   Sparkles,
+  Package,
 } from 'lucide-react'
 import type {
   Position,
@@ -505,12 +506,17 @@ export function PositionManager({
         </CardHeader>
         <CardContent>
           {showAddForm && (
-            <div className="mb-6 p-4 border rounded-lg bg-muted/50 space-y-4">
-              <h4 className="font-medium">添加新持仓</h4>
+            <div className="mb-6 p-5 border rounded-xl bg-surface/50 space-y-5 shadow-sm">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-primary/10 rounded-md">
+                  <Plus className="h-4 w-4 text-primary" />
+                </div>
+                <h4 className="font-medium">添加新持仓</h4>
+              </div>
 
               {/* 股票搜索 */}
               <div className="space-y-2" ref={searchContainerRef}>
-                <label className="text-sm text-muted-foreground">
+                <label className="text-sm text-muted-foreground font-medium">
                   股票代码/名称
                 </label>
                 <div className="relative">
@@ -520,19 +526,19 @@ export function PositionManager({
                       placeholder="输入股票代码、名称或拼音搜索..."
                       value={symbol}
                       onChange={(e) => setSymbol(e.target.value)}
-                      className="pl-9"
+                      className="pl-9 h-10"
                     />
                   </div>
 
                   {/* 搜索结果下拉框 */}
                   {(showSearchResults || !symbol) && searchResults.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                    <div className="absolute z-10 w-full mt-1 bg-popover border rounded-lg shadow-lg max-h-60 overflow-y-auto">
                       {searchResults.map((stock) => (
                         <button
                           key={stock.ts_code}
                           type="button"
                           onClick={() => handleSelectStock(stock)}
-                          className="w-full px-3 py-2 text-left hover:bg-muted transition-colors border-b last:border-b-0"
+                          className="w-full px-4 py-3 text-left hover:bg-surface-hover transition-colors border-b last:border-b-0"
                         >
                           <div className="flex items-center justify-between">
                             <div>
@@ -552,17 +558,20 @@ export function PositionManager({
                 </div>
 
                 {selectedStock && (
-                  <div className="text-xs text-muted-foreground bg-background p-2 rounded border">
-                    已选择:{' '}
+                  <div className="flex items-center gap-2 text-xs bg-background p-3 rounded-lg border">
+                    <Package className="h-4 w-4 text-primary" />
+                    <span className="text-muted-foreground">已选择:</span>
                     <span className="font-medium">{selectedStock.name}</span>
-                    ({selectedStock.ts_code}) · {selectedStock.industry}
+                    <span className="text-muted-foreground">({selectedStock.ts_code})</span>
+                    <span className="text-muted-foreground">·</span>
+                    <span className="text-muted-foreground">{selectedStock.industry}</span>
                   </div>
                 )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm text-muted-foreground">
+                  <label className="text-sm text-muted-foreground font-medium">
                     买入价格
                   </label>
                   <Input
@@ -571,10 +580,11 @@ export function PositionManager({
                     placeholder="如: 1680.50"
                     value={costPrice}
                     onChange={(e) => setCostPrice(e.target.value)}
+                    className="h-10 font-mono"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm text-muted-foreground">
+                  <label className="text-sm text-muted-foreground font-medium">
                     买入数量
                   </label>
                   <Input
@@ -583,6 +593,7 @@ export function PositionManager({
                     placeholder="如: 100"
                     value={quantity}
                     onChange={(e) => setQuantity(e.target.value)}
+                    className="h-10 font-mono"
                   />
                 </div>
               </div>
@@ -685,10 +696,10 @@ export function PositionManager({
                   return (
                     <div
                       key={position.id}
-                      className="border rounded-lg overflow-hidden"
+                      className="border rounded-xl overflow-hidden card-hover"
                     >
                       {/* 持仓头部 */}
-                      <div className="p-4 space-y-3">
+                      <div className="p-5 space-y-4 bg-surface/30">
                         <div className="flex items-center justify-between">
                           <div>
                             <div className="font-medium text-lg">
@@ -703,7 +714,7 @@ export function PositionManager({
                               variant="outline"
                               size="sm"
                               onClick={() => handleOpenTradeDialog(position, 'buy')}
-                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                              className="text-up hover:bg-up/10 hover:border-up/30"
                             >
                               <TrendingUp className="h-4 w-4 mr-1" />
                               买入
@@ -715,7 +726,7 @@ export function PositionManager({
                                 handleOpenTradeDialog(position, 'sell')
                               }
                               disabled={position.quantity <= 0}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              className="text-down hover:bg-down/10 hover:border-down/30"
                             >
                               <TrendingDown className="h-4 w-4 mr-1" />
                               卖出
@@ -724,7 +735,7 @@ export function PositionManager({
                               variant="ghost"
                               size="icon"
                               onClick={() => handleDeletePosition(position.id)}
-                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -737,7 +748,7 @@ export function PositionManager({
                             <div className="text-muted-foreground">
                               持仓数量
                             </div>
-                            <div className="font-medium">
+                            <div className="font-medium font-mono tabular-nums">
                               {position.quantity}
                             </div>
                           </div>
@@ -745,7 +756,7 @@ export function PositionManager({
                             <div className="text-muted-foreground">
                               最新成本
                             </div>
-                            <div className="font-medium">
+                            <div className="font-medium font-mono tabular-nums">
                               {formatCurrency(position.costPrice)}
                             </div>
                           </div>
@@ -753,7 +764,7 @@ export function PositionManager({
                             <div className="text-muted-foreground">
                               当前价格
                             </div>
-                            <div className="font-medium">
+                            <div className="font-medium font-mono tabular-nums">
                               {formatCurrency(position.currentPrice)}
                             </div>
                           </div>
@@ -767,6 +778,7 @@ export function PositionManager({
                                   ? 'success'
                                   : 'danger'
                               }
+                              className="font-mono tabular-nums"
                             >
                               {formatPercent(position.changePercent)}
                             </Badge>
@@ -800,11 +812,11 @@ export function PositionManager({
                               浮动盈亏
                             </div>
                             <div
-                              className={`font-medium ${
+                              className={`font-medium font-mono tabular-nums ${
                                 (position.currentPrice - position.costPrice) *
                                   position.quantity >= 0
-                                  ? 'text-green-600'
-                                  : 'text-red-600'
+                                  ? 'text-up'
+                                  : 'text-down'
                               }`}
                             >
                               {formatCurrency(
@@ -855,7 +867,7 @@ export function PositionManager({
                       {/* 交易历史 */}
                       {isExpanded &&
                         (position.transactions?.length || 0) > 0 && (
-                          <div className="border-t bg-muted/30 p-4 space-y-3">
+                          <div className="border-t bg-surface/50 p-4 space-y-3">
                             <div className="text-sm font-medium">交易历史</div>
                             {(position.transactions || [])
                               .slice()
@@ -873,7 +885,7 @@ export function PositionManager({
                                             ? 'success'
                                             : 'danger'
                                         }
-                                        className="text-xs"
+                                        className="text-xs font-mono"
                                       >
                                         {transaction.type === 'buy'
                                           ? '买入'
@@ -885,7 +897,7 @@ export function PositionManager({
                                         ).toLocaleString('zh-CN')}
                                       </span>
                                     </div>
-                                    <div className="flex items-center gap-4">
+                                    <div className="flex items-center gap-4 font-mono tabular-nums">
                                       <span>
                                         {formatCurrency(transaction.price)} ×{' '}
                                         {transaction.quantity}
@@ -938,13 +950,22 @@ export function PositionManager({
       {/* 交易弹窗 */}
       {tradeDialog.show && tradeDialog.position && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <CardHeader>
+          <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto shadow-xl">
+            <CardHeader className="border-b">
               <div className="flex items-center justify-between">
-                <CardTitle>
-                  {tradeDialog.type === 'buy' ? '买入' : '卖出'}{' '}
-                  {tradeDialog.position.name}
-                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <div className={`p-1.5 rounded-md ${tradeDialog.type === 'buy' ? 'bg-up/10' : 'bg-down/10'}`}>
+                    {tradeDialog.type === 'buy' ? (
+                      <TrendingUp className="h-4 w-4 text-up" />
+                    ) : (
+                      <TrendingDown className="h-4 w-4 text-down" />
+                    )}
+                  </div>
+                  <CardTitle>
+                    {tradeDialog.type === 'buy' ? '买入' : '卖出'}{' '}
+                    {tradeDialog.position.name}
+                  </CardTitle>
+                </div>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -953,14 +974,14 @@ export function PositionManager({
                   <X className="h-4 w-4" />
                 </Button>
               </div>
-              <CardDescription>
-                当前持仓: {tradeDialog.position.quantity}股 · 当前成本:{' '}
-                {formatCurrency(tradeDialog.position.costPrice)}
+              <CardDescription className="mt-2">
+                当前持仓: <span className="font-mono tabular-nums">{tradeDialog.position.quantity}股</span> · 当前成本:{' '}
+                <span className="font-mono tabular-nums">{formatCurrency(tradeDialog.position.costPrice)}</span>
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-5 pt-6">
               <div className="space-y-2">
-                <label className="text-sm text-muted-foreground">
+                <label className="text-sm text-muted-foreground font-medium">
                   {tradeDialog.type === 'buy' ? '买入' : '卖出'}价格
                 </label>
                 <Input
@@ -969,10 +990,11 @@ export function PositionManager({
                   placeholder="如: 1680.50"
                   value={tradePrice}
                   onChange={(e) => setTradePrice(e.target.value)}
+                  className="h-10 font-mono"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm text-muted-foreground">
+                <label className="text-sm text-muted-foreground font-medium">
                   {tradeDialog.type === 'buy' ? '买入' : '卖出'}数量
                 </label>
                 {tradeDialog.type === 'sell' && (
@@ -996,6 +1018,7 @@ export function PositionManager({
                   placeholder="如: 100"
                   value={tradeQuantity}
                   onChange={(e) => setTradeQuantity(e.target.value)}
+                  className="h-10 font-mono"
                 />
               </div>
 

@@ -40,7 +40,7 @@ export function SummarySection({ value, onChange }: SummarySectionProps) {
               <button
                 key={index}
                 onClick={() => applyTemplate(template)}
-                className="text-xs px-3 py-1.5 bg-accent hover:bg-accent/80 rounded-full transition-colors"
+                className="text-xs px-3 py-1.5 bg-surface hover:bg-surface-hover border rounded-full transition-colors"
               >
                 {template.slice(0, 15)}...
               </button>
@@ -71,10 +71,10 @@ export function SummarySection({ value, onChange }: SummarySectionProps) {
 
         {/* 统计信息 */}
         {value && (
-          <div className="text-sm text-muted-foreground bg-accent/50 rounded-lg p-3">
+          <div className="text-sm text-muted-foreground bg-surface/50 rounded-lg p-3 border">
             <div className="flex items-center justify-between">
               <span>字数统计</span>
-              <span className="font-medium">{value.length} / 2000</span>
+              <span className="font-medium font-mono tabular-nums">{value.length} / 2000</span>
             </div>
           </div>
         )}

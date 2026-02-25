@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Save, Download, Calendar } from 'lucide-react';
+import { Save, Download, Calendar, FileEdit, CheckCircle, AlertCircle } from 'lucide-react';
+import { Card } from '../../ui/card';
+import { Badge } from '../../ui/badge';
 import { reviewService } from '../../../services/reviewService';
 import type { DailyReview } from '../../../types/review';
 import { ReviewCalendar } from './ReviewCalendar';
@@ -7,6 +9,7 @@ import { MarketDataSection } from './sections/MarketDataSection';
 import { PositionSection } from './sections/PositionSection';
 import { OperationsSection } from './sections/OperationsSection';
 import { SummarySection } from './sections/SummarySection';
+import { cn } from '../../../lib/utils';
 
 interface ReviewEditorProps {
   date: string;
@@ -110,50 +113,68 @@ export function ReviewEditor({ date, existingReview, onSave }: ReviewEditorProps
   return (
     <div className="space-y-6">
       {/* 顶部工具栏 */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <h2 className="text-2xl font-bold">每日复盘</h2>
+      <Card className="p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-info/10 rounded-lg">
+                <FileEdit className="h-5 w-5 text-info" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold">每日复盘</h2>
+                <p className="text-sm text-muted-foreground">记录每日交易与心得</p>
+              </div>
+            </div>
 
-          <button
-            onClick={() => setShowCalendar(!showCalendar)}
-            className="flex items-center gap-2 px-4 py-2 border rounded-md hover:bg-accent transition-colors"
-          >
-            <Calendar className="h-4 w-4" />
-            {currentDate}
-          </button>
+            <button
+              onClick={() => setShowCalendar(!showCalendar)}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 border rounded-lg transition-all font-mono",
+                showCalendar ? "bg-primary/10 border-primary text-primary" : "hover:bg-surface-hover"
+              )}
+            >
+              <Calendar className="h-4 w-4" />
+              {currentDate}
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {saveMessage && (
+              <Badge variant={saveMessage.includes('成功') ? 'default' : 'destructive'} className="gap-1.5">
+                {saveMessage.includes('成功') ? (
+                  <CheckCircle className="h-3 w-3" />
+                ) : (
+                  <AlertCircle className="h-3 w-3" />
+                )}
+                {saveMessage}
+              </Badge>
+            )}
+
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all disabled:opacity-50 font-medium"
+            >
+              <Save className="h-4 w-4" />
+              {isSaving ? '保存中...' : '保存'}
+            </button>
+
+            <button
+              onClick={handleExportPDF}
+              className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-surface-hover transition-all"
+              title="导出为 PDF"
+            >
+              <Download className="h-4 w-4" />
+              <span className="hidden sm:inline">PDF</span>
+            </button>
+          </div>
         </div>
-
-        <div className="flex items-center gap-2">
-          {saveMessage && (
-            <span className={`text-sm ${saveMessage.includes('成功') ? 'text-green-600' : 'text-red-600'}`}>
-              {saveMessage}
-            </span>
-          )}
-
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
-          >
-            <Save className="h-4 w-4" />
-            {isSaving ? '保存中...' : '保存'}
-          </button>
-
-          <button
-            onClick={handleExportPDF}
-            className="flex items-center gap-2 px-4 py-2 border rounded-md hover:bg-accent transition-colors"
-            title="导出为 PDF"
-          >
-            <Download className="h-4 w-4" />
-            PDF
-          </button>
-        </div>
-      </div>
+      </Card>
 
       {/* 日历弹窗 */}
       {showCalendar && (
-        <div className="absolute z-50 mt-2">
-          <div className="border rounded-lg bg-background shadow-lg p-2">
+        <div className="relative z-50">
+          <div className="border rounded-xl bg-card shadow-lg p-3">
             <ReviewCalendar
               reviews={allReviews}
               selectedDate={currentDate}
@@ -193,11 +214,11 @@ export function ReviewEditor({ date, existingReview, onSave }: ReviewEditorProps
       </div>
 
       {/* 底部保存栏 */}
-      <div className="sticky bottom-0 border-t bg-background/95 backdrop-blur p-4 flex justify-center">
+      <div className="sticky bottom-0 border-t bg-background/95 backdrop-blur-sm p-4 flex justify-center">
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className="flex items-center gap-2 px-8 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 text-lg font-medium"
+          className="flex items-center gap-2 px-8 py-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50 text-lg font-medium shadow-sm"
         >
           <Save className="h-5 w-5" />
           {isSaving ? '保存中...' : '保存复盘'}

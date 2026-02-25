@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import type { DailyReview } from '../../../types/review';
+import { cn } from '../../../lib/utils';
 
 interface ReviewCalendarProps {
   reviews: DailyReview[];
@@ -89,23 +90,24 @@ export function ReviewCalendar({
   const todayStr = formatDate(new Date());
 
   return (
-    <div className="border rounded-lg bg-card p-4">
+    <div className="border rounded-xl bg-card p-4">
       {/* 月份导航 */}
       <div className="flex items-center justify-between mb-4">
         <button
           onClick={prevMonth}
-          className="p-2 hover:bg-accent rounded-md transition-colors"
+          className="p-2 hover:bg-surface-hover rounded-lg transition-colors"
         >
           <ChevronLeft className="h-5 w-5" />
         </button>
 
         <div className="flex items-center gap-3">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
           <h3 className="text-lg font-semibold">
             {currentMonth.year}年{currentMonth.month + 1}月
           </h3>
           <button
             onClick={goToday}
-            className="text-sm px-3 py-1 bg-primary/10 hover:bg-primary/20 rounded-full transition-colors"
+            className="text-sm px-3 py-1 bg-primary/10 hover:bg-primary/20 text-primary rounded-full transition-colors font-medium"
           >
             今天
           </button>
@@ -113,7 +115,7 @@ export function ReviewCalendar({
 
         <button
           onClick={nextMonth}
-          className="p-2 hover:bg-accent rounded-md transition-colors"
+          className="p-2 hover:bg-surface-hover rounded-lg transition-colors"
         >
           <ChevronRight className="h-5 w-5" />
         </button>
@@ -122,7 +124,7 @@ export function ReviewCalendar({
       {/* 星期标题 */}
       <div className="grid grid-cols-7 gap-1 mb-2">
         {weekDays.map(day => (
-          <div key={day} className="text-center text-sm text-muted-foreground py-2">
+          <div key={day} className="text-center text-xs text-muted-foreground py-2 font-medium">
             {day}
           </div>
         ))}
@@ -144,22 +146,21 @@ export function ReviewCalendar({
             <button
               key={index}
               onClick={() => onSelectDate(dateStr)}
-              className={`
-                aspect-square rounded-md flex items-center justify-center text-sm relative transition-colors
-                ${isSelected
-                  ? 'bg-primary text-primary-foreground font-semibold'
-                  : 'hover:bg-accent'
-                }
-                ${isToday && !isSelected ? 'ring-2 ring-primary' : ''}
-              `}
+              className={cn(
+                "aspect-square rounded-lg flex items-center justify-center text-sm relative transition-all font-medium",
+                isSelected
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'hover:bg-surface-hover',
+                isToday && !isSelected && 'ring-2 ring-primary/30'
+              )}
             >
               {date.getDate()}
               {hasReview && (
                 <span
-                  className={`
-                    absolute bottom-1 w-1 h-1 rounded-full
-                    ${isSelected ? 'bg-primary-foreground' : 'bg-primary'}
-                  `}
+                  className={cn(
+                    "absolute bottom-1 w-1.5 h-1.5 rounded-full",
+                    isSelected ? 'bg-primary-foreground' : 'bg-primary'
+                  )}
                 />
               )}
             </button>

@@ -4,9 +4,10 @@ import { ProfitDashboard } from './components/dashboard/ProfitDashboard'
 import { NewsFeed } from './components/dashboard/NewsFeed'
 import { DataExport } from './components/dashboard/DataExport'
 import { ReviewTab } from './components/dashboard/review/ReviewTab'
-import { LineChart, TrendingUp, Newspaper, Database, BookOpen, Menu, X } from 'lucide-react'
+import { LineChart, TrendingUp, Newspaper, Database, BookOpen, Menu, X, Wallet, ChevronRight } from 'lucide-react'
 import type { Position, ProfitSummary } from './types'
 import { calculateProfitSummary, calculateClearedProfit } from './utils/calculations'
+import { formatCurrency, formatPercent } from './lib/utils'
 import TurtleTraceLogo from './assets/TurtleTraceLogo.png'
 
 function App() {
@@ -103,42 +104,50 @@ function App() {
 
         {/* 持仓市值信息 */}
         {positions.length > 0 && (
-          <div className="px-6 py-4 border-b bg-muted/30">
-            <div className="text-xs text-muted-foreground mb-1">持仓市值</div>
-            <div className={`text-lg font-bold ${summary.totalProfit >= 0 ? 'text-red-600' : 'text-green-600'}`}>
-              {summary.totalProfit >= 0 ? '+' : ''}
-              {summary.totalProfit.toFixed(2)}
+          <div className="px-6 py-4 border-b bg-surface-hover">
+            <div className="flex items-center gap-2 mb-2">
+              <Wallet className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">持仓市值</span>
             </div>
-            <div className={`text-sm ${summary.totalProfitPercent >= 0 ? 'text-red-500' : 'text-green-500'}`}>
-              ({summary.totalProfitPercent >= 0 ? '+' : ''}{summary.totalProfitPercent.toFixed(2)}%)
+            <div className={`text-lg font-bold font-mono tabular-nums ${summary.totalProfit >= 0 ? 'text-up' : 'text-down'}`}>
+              {summary.totalProfit >= 0 ? '+' : ''}
+              {formatCurrency(summary.totalProfit)}
+            </div>
+            <div className={`text-sm font-medium ${summary.totalProfitPercent >= 0 ? 'text-up' : 'text-down'}`}>
+              ({summary.totalProfitPercent >= 0 ? '+' : ''}{formatPercent(summary.totalProfitPercent)})
             </div>
           </div>
         )}
 
         {/* 导航菜单 */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto scrollbar-thin">
           {tabs.map(tab => {
             const Icon = tab.icon
+            const isActive = activeTab === tab.id
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
-                  activeTab === tab.id
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
+                  isActive
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:bg-surface-hover hover:text-foreground'
                 }`}
               >
                 <Icon className="h-5 w-5" />
-                {tab.label}
+                <span className="flex-1 text-left">{tab.label}</span>
+                {isActive && <ChevronRight className="h-4 w-4" />}
               </button>
             )
           })}
         </nav>
 
         {/* 侧边栏底部 */}
-        <div className="p-4 border-t text-xs text-muted-foreground text-center">
-          <p>龟迹复盘 v1.0</p>
+        <div className="p-4 border-t text-xs text-muted-foreground">
+          <div className="flex items-center justify-center gap-1">
+            <span>龟迹复盘</span>
+            <span className="text-muted">v1.0</span>
+          </div>
         </div>
       </aside>
 
@@ -147,17 +156,20 @@ function App() {
         sidebarOpen ? 'ml-64' : 'ml-0'
       }`}>
         {/* 顶部栏（菜单按钮） */}
-        <header className="h-14 border-b bg-card flex items-center px-4 flex-shrink-0">
+        <header className="h-14 border-b bg-card flex items-center justify-between px-4 flex-shrink-0">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 hover:bg-accent rounded-lg transition-colors"
+            className="p-2 hover:bg-surface-hover rounded-lg transition-colors"
           >
             {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
+          <div className="text-xs text-muted-foreground">
+            数据仅供参考，不构成投资建议
+          </div>
         </header>
 
         {/* 主内容 */}
-        <main className="flex-1 overflow-y-auto px-6 py-6">
+        <main className="flex-1 overflow-y-auto px-6 py-6 scrollbar-thin">
           {activeTab === 'overview' && (
             <ProfitDashboard
               summary={summary}
@@ -190,11 +202,6 @@ function App() {
             />
           )}
         </main>
-
-        {/* 页脚 */}
-        <footer className="border-t py-4 px-6 text-center text-xs text-muted-foreground flex-shrink-0">
-          <p>数据仅供参考，不构成投资建议</p>
-        </footer>
       </div>
     </div>
   )

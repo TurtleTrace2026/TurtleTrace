@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { cn } from '../../../../lib/utils';
 
 interface SectionCardProps {
   title: string;
@@ -21,16 +22,16 @@ export function SectionCard({
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   return (
-    <div className={`border rounded-lg bg-card ${className}`}>
+    <div className={cn("border rounded-xl bg-card overflow-hidden transition-all", className)}>
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between p-4 text-left hover:bg-accent/50 transition-colors"
+        className="w-full flex items-center justify-between p-4 text-left hover:bg-surface-hover transition-colors"
       >
         <div className="flex items-center gap-3">
           <span className="text-xl">{icon}</span>
           <h3 className="font-semibold">{title}</h3>
           {badge !== undefined && (
-            <span className="text-sm text-muted-foreground">({badge})</span>
+            <span className="text-sm text-muted-foreground bg-muted px-2 py-0.5 rounded-full">({badge})</span>
           )}
         </div>
         {isExpanded ? (

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ArrowUpRight, ArrowDownRight, TrendingUp, TrendingDown, Lightbulb } from 'lucide-react';
+import { cn } from '../../../../lib/utils';
 import { SectionCard } from '../shared/SectionCard';
 import { TextInput } from '../shared/TextInput';
 import type { OperationsReviewData, OperationTransaction, OperationReflection } from '../../../../types/review';
@@ -130,13 +131,13 @@ export function OperationsSection({ data, onChange, date }: OperationsSectionPro
               return (
                 <div
                   key={index}
-                  className="flex items-start gap-4 p-4 border rounded-lg hover:bg-accent/30"
+                  className="flex items-start gap-4 p-4 border rounded-lg hover:bg-surface-hover transition-colors"
                 >
                   {/* 操作类型图标 */}
-                  <div className={`
-                    flex items-center justify-center w-10 h-10 rounded-full
-                    ${isBuy ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}
-                  `}>
+                  <div className={cn(
+                    "flex items-center justify-center w-10 h-10 rounded-full",
+                    isBuy ? "bg-up/20 text-up" : "bg-down/20 text-down"
+                  )}>
                     {isBuy ? <ArrowUpRight className="w-5 h-5" /> : <ArrowDownRight className="w-5 h-5" />}
                   </div>
 
@@ -145,26 +146,29 @@ export function OperationsSection({ data, onChange, date }: OperationsSectionPro
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-semibold">{tx.name}</span>
                       <span className="text-sm text-muted-foreground">{tx.symbol}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${isBuy ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                      <span className={cn(
+                        "text-xs px-2 py-0.5 rounded-full font-medium",
+                        isBuy ? "bg-up/20 text-up" : "bg-down/20 text-down"
+                      )}>
                         {isBuy ? '买入' : '卖出'}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span>价格: ¥{tx.price.toFixed(2)}</span>
-                      <span>数量: {tx.quantity}股</span>
-                      <span>金额: ¥{tx.amount.toFixed(2)}</span>
+                      <span className="font-mono tabular-nums">价格: ¥{tx.price.toFixed(2)}</span>
+                      <span className="font-mono tabular-nums">数量: {tx.quantity}股</span>
+                      <span className="font-mono tabular-nums">金额: ¥{tx.amount.toFixed(2)}</span>
                     </div>
 
                     {/* 情绪和原因标签 */}
                     <div className="flex items-center gap-2 mt-2 flex-wrap">
                       {tx.mood && (
-                        <span className="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-700">
+                        <span className="text-xs px-2 py-1 rounded-full bg-purple/20 text-purple font-medium">
                           😊 {tx.mood}
                         </span>
                       )}
                       {tx.reason.map((r: any, i: number) => (
-                        <span key={i} className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+                        <span key={i} className="text-xs px-2 py-1 rounded-full bg-blue/20 text-blue font-medium">
                           💡 {r}
                         </span>
                       ))}
@@ -186,7 +190,7 @@ export function OperationsSection({ data, onChange, date }: OperationsSectionPro
               {/* 做得好的地方 */}
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center gap-1">
-                  <TrendingUp className="w-4 h-4 text-green-500" />
+                  <TrendingUp className="w-4 h-4 text-up" />
                   做得好的地方
                 </label>
                 <TextInput
@@ -201,7 +205,7 @@ export function OperationsSection({ data, onChange, date }: OperationsSectionPro
               {/* 做得不好的地方 */}
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center gap-1">
-                  <TrendingDown className="w-4 h-4 text-red-500" />
+                  <TrendingDown className="w-4 h-4 text-down" />
                   需要改进的地方
                 </label>
                 <TextInput

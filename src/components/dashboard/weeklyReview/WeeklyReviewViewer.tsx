@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Edit, Trash2, Download } from 'lucide-react';
+import { Edit, Trash2, Download, Calendar } from 'lucide-react';
 import { weeklyReviewService } from '../../../services/weeklyReviewService';
 import type { WeeklyReview } from '../../../types/weeklyReview';
 import { getCurrentWeekLabel } from '../../../types/weeklyReview';
 import { Card, CardContent } from '../../ui/card';
 import { Button } from '../../ui/button';
+import { Badge } from '../../ui/badge';
+import { cn } from '../../../lib/utils';
 
 interface WeeklyReviewViewerProps {
   onEditWeek?: (weekLabel: string) => void;
@@ -84,16 +86,20 @@ export function WeeklyReviewViewer({ onEditWeek }: WeeklyReviewViewerProps) {
 
   if (reviews.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <div className="text-6xl mb-4">📊</div>
-        <h3 className="text-xl font-semibold mb-2">还没有周复盘记录</h3>
-        <p className="text-muted-foreground mb-6">开始创建你的第一个每周复盘吧</p>
-        {onEditWeek && (
-          <Button onClick={() => onEditWeek(getCurrentWeekLabel())}>
-            创建本周复盘
-          </Button>
-        )}
-      </div>
+      <Card className="p-12">
+        <div className="flex flex-col items-center justify-center text-center">
+          <div className="p-4 bg-muted/20 rounded-full mb-4">
+            <Calendar className="h-12 w-12 text-muted-foreground" />
+          </div>
+          <h3 className="text-xl font-semibold mb-2">还没有周复盘记录</h3>
+          <p className="text-muted-foreground mb-6">开始创建你的第一个每周复盘吧</p>
+          {onEditWeek && (
+            <Button onClick={() => onEditWeek(getCurrentWeekLabel())}>
+              创建本周复盘
+            </Button>
+          )}
+        </div>
+      </Card>
     );
   }
 
@@ -103,20 +109,24 @@ export function WeeklyReviewViewer({ onEditWeek }: WeeklyReviewViewerProps) {
       <div className="col-span-3">
         <Card>
           <CardContent className="p-4">
-            <h3 className="font-semibold mb-3">历史复盘</h3>
-            <div className="space-y-1 max-h-[600px] overflow-y-auto">
+            <h3 className="font-semibold mb-3 flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              历史复盘
+            </h3>
+            <div className="space-y-1 max-h-[600px] overflow-y-auto scrollbar-thin">
               {reviews.map(review => (
                 <button
                   key={review.weekLabel}
                   onClick={() => handleSelectWeek(review.weekLabel)}
-                  className={`w-full text-left px-3 py-2 rounded-md transition-colors ${
+                  className={cn(
+                    "w-full text-left px-3 py-2.5 rounded-lg transition-all border",
                     selectedWeek === review.weekLabel
-                      ? 'bg-primary text-primary-foreground'
-                      : 'hover:bg-accent'
-                  }`}
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'hover:bg-surface-hover border-transparent'
+                  )}
                 >
-                  <div className="font-medium">{review.weekLabel}</div>
-                  <div className={`text-xs ${selectedWeek === review.weekLabel ? 'opacity-80' : 'text-muted-foreground'}`}>
+                  <div className="font-medium font-mono">{review.weekLabel}</div>
+                  <div className={cn("text-xs mt-1", selectedWeek === review.weekLabel ? "opacity-80" : "text-muted-foreground")}>
                     {review.startDate} ~ {review.endDate}
                   </div>
                 </button>
@@ -131,38 +141,43 @@ export function WeeklyReviewViewer({ onEditWeek }: WeeklyReviewViewerProps) {
         {selectedReview ? (
           <div className="space-y-6">
             {/* 顶部操作栏 */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold">{selectedReview.weekLabel}</h2>
-                <p className="text-muted-foreground">{selectedReview.startDate} ~ {selectedReview.endDate}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleExport(selectedReview.weekLabel)}
-                  className="p-2 hover:bg-accent rounded-md transition-colors"
-                  title="导出PDF"
-                >
-                  <Download className="h-4 w-4" />
-                </button>
-                {onEditWeek && (
+            <Card className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold flex items-center gap-3">
+                    {selectedReview.weekLabel}
+                    <Badge variant="outline" className="text-sm">每周复盘</Badge>
+                  </h2>
+                  <p className="text-muted-foreground mt-1 font-mono">{selectedReview.startDate} ~ {selectedReview.endDate}</p>
+                </div>
+                <div className="flex items-center gap-2">
                   <button
-                    onClick={handleEdit}
-                    className="p-2 hover:bg-accent rounded-md transition-colors"
-                    title="编辑"
+                    onClick={() => handleExport(selectedReview.weekLabel)}
+                    className="p-2 hover:bg-surface-hover rounded-lg transition-colors"
+                    title="导出PDF"
                   >
-                    <Edit className="h-4 w-4" />
+                    <Download className="h-4 w-4" />
                   </button>
-                )}
-                <button
-                  onClick={() => handleDelete(selectedReview.weekLabel)}
-                  disabled={deletingWeek === selectedReview.weekLabel}
-                  className="p-2 hover:bg-accent text-red-600 hover:text-red-700 rounded-md transition-colors disabled:opacity-50"
-                  title="删除"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                  {onEditWeek && (
+                    <button
+                      onClick={handleEdit}
+                      className="p-2 hover:bg-surface-hover rounded-lg transition-colors"
+                      title="编辑"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleDelete(selectedReview.weekLabel)}
+                    disabled={deletingWeek === selectedReview.weekLabel}
+                    className="p-2 hover:bg-destructive/10 text-destructive rounded-lg transition-colors disabled:opacity-50"
+                    title="删除"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
-            </div>
+            </Card>
 
             {/* 复盘内容 */}
             <div className="space-y-6">
@@ -200,46 +215,50 @@ export function WeeklyReviewViewer({ onEditWeek }: WeeklyReviewViewerProps) {
                     </h3>
                     <div className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-muted/50 p-3 rounded-md">
+                        <div className={cn("p-3 rounded-lg border", selectedReview.achievements.marketPerformance.shanghaiChange >= 0 ? "bg-up/5 border-up/20" : "bg-down/5 border-down/20")}>
                           <div className="text-sm text-muted-foreground">上证涨跌</div>
-                          <div className={`text-lg font-semibold ${selectedReview.achievements.marketPerformance.shanghaiChange >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                          <div className={cn("text-lg font-semibold font-mono", selectedReview.achievements.marketPerformance.shanghaiChange >= 0 ? 'text-up' : 'text-down')}>
                             {selectedReview.achievements.marketPerformance.shanghaiChange >= 0 ? '+' : ''}{selectedReview.achievements.marketPerformance.shanghaiChange.toFixed(2)}%
                           </div>
                         </div>
-                        <div className="bg-muted/50 p-3 rounded-md">
+                        <div className={cn("p-3 rounded-lg border", selectedReview.achievements.marketPerformance.chinextChange >= 0 ? "bg-up/5 border-up/20" : "bg-down/5 border-down/20")}>
                           <div className="text-sm text-muted-foreground">创业板涨跌</div>
-                          <div className={`text-lg font-semibold ${selectedReview.achievements.marketPerformance.chinextChange >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                          <div className={cn("text-lg font-semibold font-mono", selectedReview.achievements.marketPerformance.chinextChange >= 0 ? 'text-up' : 'text-down')}>
                             {selectedReview.achievements.marketPerformance.chinextChange >= 0 ? '+' : ''}{selectedReview.achievements.marketPerformance.chinextChange.toFixed(2)}%
                           </div>
                         </div>
                       </div>
-                      <div className="bg-muted/50 p-3 rounded-md">
+                      <div className="bg-surface/50 p-3 rounded-lg border">
                         <div className="text-sm text-muted-foreground">主线板块 vs 大盘</div>
-                        <div className="text-lg font-semibold">
-                          {selectedReview.achievements.sectorPerformance.sectorChange >= 0 ? '+' : ''}{selectedReview.achievements.sectorPerformance.sectorChange.toFixed(2)}%
+                        <div className="text-lg font-semibold font-mono">
+                          <span className={selectedReview.achievements.sectorPerformance.sectorChange >= 0 ? 'text-up' : 'text-down'}>
+                            {selectedReview.achievements.sectorPerformance.sectorChange >= 0 ? '+' : ''}{selectedReview.achievements.sectorPerformance.sectorChange.toFixed(2)}%
+                          </span>
                           <span className="text-muted-foreground mx-2">vs</span>
-                          {selectedReview.achievements.marketPerformance.shanghaiChange >= 0 ? '+' : ''}{selectedReview.achievements.marketPerformance.shanghaiChange.toFixed(2)}%
+                          <span className={selectedReview.achievements.marketPerformance.shanghaiChange >= 0 ? 'text-up' : 'text-down'}>
+                            {selectedReview.achievements.marketPerformance.shanghaiChange >= 0 ? '+' : ''}{selectedReview.achievements.marketPerformance.shanghaiChange.toFixed(2)}%
+                          </span>
                         </div>
                       </div>
                       <div className="grid grid-cols-3 gap-4">
-                        <div className="bg-muted/50 p-3 rounded-md text-center">
+                        <div className="bg-surface/50 p-3 rounded-lg text-center border">
                           <div className="text-sm text-muted-foreground">主线仓位</div>
-                          <div className="text-lg font-semibold">{selectedReview.achievements.mainSectorPosition.toFixed(1)}%</div>
+                          <div className="text-lg font-semibold font-mono">{selectedReview.achievements.mainSectorPosition.toFixed(1)}%</div>
                         </div>
-                        <div className="bg-muted/50 p-3 rounded-md text-center">
+                        <div className={cn("p-3 rounded-lg text-center border", selectedReview.achievements.totalProfitLoss >= 0 ? "bg-up/5 border-up/20" : "bg-down/5 border-down/20")}>
                           <div className="text-sm text-muted-foreground">总体盈亏</div>
-                          <div className={`text-lg font-semibold ${selectedReview.achievements.totalProfitLoss >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                          <div className={cn("text-lg font-semibold font-mono", selectedReview.achievements.totalProfitLoss >= 0 ? 'text-up' : 'text-down')}>
                             {selectedReview.achievements.totalProfitLoss >= 0 ? '+' : ''}{selectedReview.achievements.totalProfitLoss.toFixed(2)}%
                           </div>
                         </div>
-                        <div className="bg-muted/50 p-3 rounded-md text-center">
+                        <div className="bg-surface/50 p-3 rounded-lg text-center border">
                           <div className="text-sm text-muted-foreground">胜率</div>
-                          <div className="text-lg font-semibold">{selectedReview.achievements.winRate.toFixed(1)}%</div>
+                          <div className="text-lg font-semibold font-mono">{selectedReview.achievements.winRate.toFixed(1)}%</div>
                         </div>
                       </div>
                       {selectedReview.achievements.highlights.length > 0 && (
                         <div>
-                          <div className="text-sm font-medium mb-2 text-green-700">✓ 操作亮点</div>
+                          <div className="text-sm font-medium mb-2 text-success">✓ 操作亮点</div>
                           <ul className="space-y-1">
                             {selectedReview.achievements.highlights.map((h, i) => (
                               <li key={i} className="text-sm text-muted-foreground">• {h}</li>
@@ -249,7 +268,7 @@ export function WeeklyReviewViewer({ onEditWeek }: WeeklyReviewViewerProps) {
                       )}
                       {selectedReview.achievements.lowlights.length > 0 && (
                         <div>
-                          <div className="text-sm font-medium mb-2 text-red-700">✗ 操作槽点</div>
+                          <div className="text-sm font-medium mb-2 text-destructive">✗ 操作槽点</div>
                           <ul className="space-y-1">
                             {selectedReview.achievements.lowlights.map((l, i) => (
                               <li key={i} className="text-sm text-muted-foreground">• {l}</li>
@@ -273,19 +292,19 @@ export function WeeklyReviewViewer({ onEditWeek }: WeeklyReviewViewerProps) {
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground w-40">资金集中主线：</span>
-                        <span className={selectedReview.resourceAnalysis.focusedOnMain ? 'text-green-600' : 'text-red-600'}>
+                        <span className={cn("font-medium", selectedReview.resourceAnalysis.focusedOnMain ? 'text-success' : 'text-destructive')}>
                           {selectedReview.resourceAnalysis.focusedOnMain ? '✓ 是' : '✗ 否'}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground w-40">分散杂毛股：</span>
-                        <span className={selectedReview.resourceAnalysis.scatteredAttention ? 'text-red-600' : 'text-green-600'}>
+                        <span className={cn("font-medium", selectedReview.resourceAnalysis.scatteredAttention ? 'text-destructive' : 'text-success')}>
                           {selectedReview.resourceAnalysis.scatteredAttention ? '✗ 是' : '✓ 否'}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground w-40">操作频率：</span>
-                        <span>{freqMap[selectedReview.resourceAnalysis.tradingFrequency]}</span>
+                        <span className="font-medium">{freqMap[selectedReview.resourceAnalysis.tradingFrequency]}</span>
                       </div>
                     </div>
                   </CardContent>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Edit, Eye, Plus } from 'lucide-react';
+import { Edit, Eye, Plus, BookOpen, Calendar } from 'lucide-react';
+import { Card } from '../../ui/card';
 import { ReviewEditor } from './ReviewEditor';
 import { ReviewViewer } from './ReviewViewer';
 import { WeeklyReviewEditor } from '../weeklyReview/WeeklyReviewEditor';
@@ -114,75 +115,81 @@ export function ReviewTab() {
   const currentWeekLabel = getCurrentWeekLabel();
 
   return (
-    <div className="space-y-4">
-      {/* 模式切换 */}
-      <div className="flex items-center justify-between border-b pb-4">
-        <div className="flex gap-2">
-          {/* 复盘类型切换 */}
-          <div className="flex gap-1 bg-muted rounded-lg p-1">
+    <div className="space-y-6">
+      {/* 模式切换卡片 */}
+      <Card className="p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          {/* 左侧：复盘类型和模式切换 */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* 复盘类型切换 */}
+            <div className="flex gap-1 bg-surface rounded-lg p-1 border">
+              <button
+                onClick={() => handleReviewTypeChange('daily')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                  reviewType === 'daily'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:bg-surface-hover'
+                }`}
+              >
+                <BookOpen className="h-4 w-4" />
+                每日复盘
+              </button>
+              <button
+                onClick={() => handleReviewTypeChange('weekly')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                  reviewType === 'weekly'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:bg-surface-hover'
+                }`}
+              >
+                <Calendar className="h-4 w-4" />
+                每周复盘
+              </button>
+            </div>
+
+            <div className="w-px h-8 bg-border" />
+
+            {/* 编辑/查看模式切换 */}
             <button
-              onClick={() => handleReviewTypeChange('daily')}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                reviewType === 'daily'
-                  ? 'bg-background shadow-sm'
-                  : 'hover:bg-background/50'
+              onClick={() => setViewMode('edit')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all ${
+                viewMode === 'edit'
+                  ? 'bg-info text-info-foreground shadow-sm'
+                  : 'bg-surface hover:bg-surface-hover text-muted-foreground'
               }`}
             >
-              每日复盘
+              <Edit className="h-4 w-4" />
+              编辑复盘
             </button>
             <button
-              onClick={() => handleReviewTypeChange('weekly')}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                reviewType === 'weekly'
-                  ? 'bg-background shadow-sm'
-                  : 'hover:bg-background/50'
+              onClick={handleSwitchToView}
+              disabled={reviewType === 'daily' ? !hasAnyReviews : !hasAnyWeeklyReviews}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                viewMode === 'view'
+                  ? 'bg-info text-info-foreground shadow-sm'
+                  : 'bg-surface hover:bg-surface-hover text-muted-foreground'
               }`}
             >
-              每周复盘
+              <Eye className="h-4 w-4" />
+              查看历史
             </button>
           </div>
 
-          <div className="w-px bg-border mx-2" />
-
-          {/* 编辑/查看模式切换 */}
-          <button
-            onClick={() => setViewMode('edit')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
-              viewMode === 'edit'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-accent hover:bg-accent/80'
-            }`}
-          >
-            <Edit className="h-4 w-4" />
-            编辑复盘
-          </button>
-          <button
-            onClick={handleSwitchToView}
-            disabled={reviewType === 'daily' ? !hasAnyReviews : !hasAnyWeeklyReviews}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-              viewMode === 'view'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-accent hover:bg-accent/80'
-            }`}
-          >
-            <Eye className="h-4 w-4" />
-            查看历史
-          </button>
+          {/* 右侧：提示信息 */}
+          {reviewType === 'daily' && selectedDate === todayDate && !existingReview && (
+            <div className="flex items-center gap-2 text-sm text-info bg-info/10 px-3 py-2 rounded-lg">
+              <Plus className="h-4 w-4" />
+              开始今日复盘
+            </div>
+          )}
+          {reviewType === 'weekly' && selectedWeek === currentWeekLabel && !existingWeeklyReview && (
+            <div className="flex items-center gap-2 text-sm text-info bg-info/10 px-3 py-2 rounded-lg">
+              <Plus className="h-4 w-4" />
+              开始本周复盘
+            </div>
+          )}
         </div>
-
-        {reviewType === 'daily' && selectedDate === todayDate && !existingReview && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Plus className="h-4 w-4" />
-            开始今日复盘
-          </div>
-        )}
-        {reviewType === 'weekly' && selectedWeek === currentWeekLabel && !existingWeeklyReview && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Plus className="h-4 w-4" />
-            开始本周复盘
-          </div>
-        )}
-      </div>
+      </Card>
 
       {/* 内容区域 */}
       {reviewType === 'daily' ? (

@@ -23,6 +23,7 @@ package-lock.json
 *.njsproj
 *.sln
 *.sw?
+.claude
 
 # temp data
 tmp_data

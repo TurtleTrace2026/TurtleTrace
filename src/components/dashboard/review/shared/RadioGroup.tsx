@@ -24,10 +24,10 @@ export function RadioGroup({
           key={option.value}
           onClick={() => onChange(option.value)}
           className={`
-            px-4 py-2 rounded-full border-2 transition-all
+            px-4 py-2 rounded-full border-2 transition-all font-medium text-sm
             ${value === option.value
-              ? 'border-primary bg-primary text-primary-foreground font-medium'
-              : 'border-border bg-background hover:border-primary/50'
+              ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+              : 'border-border bg-surface hover:bg-surface-hover hover:border-primary/50 text-foreground'
             }
           `}
         >

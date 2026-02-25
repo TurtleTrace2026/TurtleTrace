@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { X, Share2, Image as ImageIcon, Check } from 'lucide-react';
+import { cn } from '../../lib/utils';
 import type { PositionProfit } from '../../types';
 import { formatCurrency, formatPercent } from '../../lib/utils';
 import TurtleTraceLogo from '../../assets/TurtleTraceLogo.png';
@@ -178,16 +179,18 @@ export function StockShareDialog({ position, isOpen, onClose }: StockShareDialog
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-background rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-background rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         {/* 头部 */}
-        <div className="sticky top-0 bg-background border-b px-6 py-4 flex items-center justify-between z-10">
+        <div className="sticky top-0 bg-background border-b px-6 py-4 flex items-center justify-between z-10 rounded-t-xl">
           <div className="flex items-center gap-2">
-            <Share2 className="h-5 w-5 text-primary" />
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Share2 className="h-5 w-5 text-primary" />
+            </div>
             <h2 className="text-lg font-semibold">分享 {position.name}</h2>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-accent rounded-md transition-colors"
+            className="p-2 hover:bg-surface-hover rounded-lg transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
@@ -196,16 +199,17 @@ export function StockShareDialog({ position, isOpen, onClose }: StockShareDialog
         <div className="p-6 space-y-6">
           {/* 模板选择器 */}
           <div className="flex justify-center">
-            <div className="inline-flex bg-muted p-1 rounded-lg">
+            <div className="inline-flex bg-surface p-1 rounded-lg border">
               {SHARE_TEMPLATES.map((template) => (
                 <button
                   key={template.id}
                   onClick={() => handleTemplateChange(template.id)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all ${
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-2 rounded-md transition-all",
                     selectedTemplate === template.id
-                      ? 'bg-background text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-surface-hover'
+                  )}
                 >
                   <span>{template.icon}</span>
                   <span className="text-sm font-medium">{template.name}</span>
@@ -262,11 +266,11 @@ export function StockShareDialog({ position, isOpen, onClose }: StockShareDialog
                 <div className="flex justify-between items-center mb-4 pb-4 border-b">
                   <div className="text-center">
                     <div className="text-xs text-muted-foreground mb-1">成本价</div>
-                    <div className="text-lg font-semibold">¥{costPrice.toFixed(2)}</div>
+                    <div className="text-lg font-semibold font-mono tabular-nums">¥{costPrice.toFixed(2)}</div>
                   </div>
                   <div className="text-center">
                     <div className="text-xs text-muted-foreground mb-1">最新价</div>
-                    <div className={`text-lg font-semibold ${isPositive ? 'text-red-500' : 'text-green-500'}`}>
+                    <div className={cn("text-lg font-semibold font-mono tabular-nums", isPositive ? 'text-up' : 'text-down')}>
                       ¥{currentPrice.toFixed(2)}
                     </div>
                   </div>
@@ -276,7 +280,7 @@ export function StockShareDialog({ position, isOpen, onClose }: StockShareDialog
                 {selectedTemplate === 'amount' && (
                   <div className="text-center">
                     <div className="text-sm text-muted-foreground mb-2">总盈亏</div>
-                    <div className={`text-4xl font-bold ${isPositive ? 'text-red-500' : 'text-green-500'}`}>
+                    <div className={cn("text-4xl font-bold font-mono tabular-nums", isPositive ? 'text-up' : 'text-down')}>
                       {isPositive ? '+' : ''}{formatCurrency(position.profit)}
                     </div>
                   </div>
@@ -285,7 +289,7 @@ export function StockShareDialog({ position, isOpen, onClose }: StockShareDialog
                 {selectedTemplate === 'rate' && (
                   <div className="text-center">
                     <div className="text-sm text-muted-foreground mb-2">收益率</div>
-                    <div className={`text-4xl font-bold ${isPositive ? 'text-red-500' : 'text-green-500'}`}>
+                    <div className={cn("text-4xl font-bold font-mono tabular-nums", isPositive ? 'text-up' : 'text-down')}>
                       {isPositive ? '+' : ''}{formatPercent(position.profitPercent)}
                     </div>
                   </div>
@@ -295,13 +299,13 @@ export function StockShareDialog({ position, isOpen, onClose }: StockShareDialog
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-center">
                       <div className="text-xs text-muted-foreground mb-1">总盈亏</div>
-                      <div className={`text-2xl font-bold ${isPositive ? 'text-red-500' : 'text-green-500'}`}>
+                      <div className={cn("text-2xl font-bold font-mono tabular-nums", isPositive ? 'text-up' : 'text-down')}>
                         {isPositive ? '+' : ''}{formatCurrency(position.profit)}
                       </div>
                     </div>
                     <div className="text-center">
                       <div className="text-xs text-muted-foreground mb-1">收益率</div>
-                      <div className={`text-2xl font-bold ${isPositive ? 'text-red-500' : 'text-green-500'}`}>
+                      <div className={cn("text-2xl font-bold font-mono tabular-nums", isPositive ? 'text-up' : 'text-down')}>
                         {isPositive ? '+' : ''}{formatPercent(position.profitPercent)}
                       </div>
                     </div>

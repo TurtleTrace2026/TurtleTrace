@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Save, Download, ChevronLeft, ChevronRight } from 'lucide-react';
+import { cn } from '../../../lib/utils';
 import { weeklyReviewService } from '../../../services/weeklyReviewService';
 import type { WeeklyReview } from '../../../types/weeklyReview';
 import { getCurrentWeekLabel, getWeekRange } from '../../../types/weeklyReview';
@@ -39,7 +40,7 @@ function NumberInput({
         onChange(parseFloat(newValue) || 0);
       }}
       placeholder={placeholder}
-      className={`w-full px-3 py-2 border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary ${className}`}
+      className={cn("w-full px-3 py-2 border rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all placeholder:text-muted-foreground/50", className)}
     />
   );
 }
@@ -165,7 +166,7 @@ export function WeeklyReviewEditor({ weekLabel, existingReview, onSave }: Weekly
         <div className="flex items-center gap-4">
           <button
             onClick={() => changeWeek('prev')}
-            className="p-2 hover:bg-accent rounded-md transition-colors"
+            className="p-2 hover:bg-surface-hover rounded-lg transition-colors"
             title="上一周"
           >
             <ChevronLeft className="h-5 w-5" />
@@ -176,7 +177,7 @@ export function WeeklyReviewEditor({ weekLabel, existingReview, onSave }: Weekly
           </div>
           <button
             onClick={() => changeWeek('next')}
-            className="p-2 hover:bg-accent rounded-md transition-colors"
+            className="p-2 hover:bg-surface-hover rounded-lg transition-colors"
             title="下一周"
           >
             <ChevronRight className="h-5 w-5" />
@@ -185,13 +186,13 @@ export function WeeklyReviewEditor({ weekLabel, existingReview, onSave }: Weekly
 
         <div className="flex items-center gap-2">
           {saveMessage && (
-            <span className={`text-sm ${saveMessage.includes('成功') ? 'text-green-600' : 'text-red-600'}`}>
+            <span className={cn("text-sm", saveMessage.includes('成功') ? 'text-up' : 'text-down')}>
               {saveMessage}
             </span>
           )}
           <button
             onClick={handleExportPDF}
-            className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent/80 rounded-md transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-surface hover:bg-surface-hover border rounded-lg transition-colors"
           >
             <Download className="h-4 w-4" />
             导出PDF
@@ -199,7 +200,7 @@ export function WeeklyReviewEditor({ weekLabel, existingReview, onSave }: Weekly
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-md transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors disabled:opacity-50"
           >
             <Save className="h-4 w-4" />
             {isSaving ? '保存中...' : '保存'}
@@ -402,7 +403,7 @@ export function WeeklyReviewEditor({ weekLabel, existingReview, onSave }: Weekly
                 onChange={(e) => updateReview({
                   resourceAnalysis: { ...review.resourceAnalysis!, tradingFrequency: e.target.value as any }
                 })}
-                className="w-full px-3 py-2 border rounded-md"
+                className="w-full px-3 py-2 border rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
               >
                 <option value="excessive">过度交易</option>
                 <option value="moderate">适度</option>
@@ -422,7 +423,7 @@ export function WeeklyReviewEditor({ weekLabel, existingReview, onSave }: Weekly
                 onChange={(e) => updateReview({
                   marketRhythm: { ...review.marketRhythm!, emotionCycle: e.target.value as any }
                 })}
-                className="w-full px-3 py-2 border rounded-md"
+                className="w-full px-3 py-2 border rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
               >
                 <option value="startup">启动期</option>
                 <option value="main_rise">主升期</option>
@@ -548,7 +549,7 @@ export function WeeklyReviewEditor({ weekLabel, existingReview, onSave }: Weekly
                           });
                         }}
                         placeholder="名称"
-                        className="col-span-3 px-3 py-2 border rounded-md text-sm"
+                        className="col-span-3 px-3 py-2 border rounded-lg text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors placeholder:text-muted-foreground/50"
                       />
                       <input
                         type="text"
@@ -562,7 +563,7 @@ export function WeeklyReviewEditor({ weekLabel, existingReview, onSave }: Weekly
                           });
                         }}
                         placeholder="代码"
-                        className="col-span-2 px-3 py-2 border rounded-md text-sm"
+                        className="col-span-2 px-3 py-2 border rounded-lg text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors placeholder:text-muted-foreground/50"
                       />
                       <input
                         type="text"
@@ -576,7 +577,7 @@ export function WeeklyReviewEditor({ weekLabel, existingReview, onSave }: Weekly
                           });
                         }}
                         placeholder="逻辑"
-                        className="col-span-7 px-3 py-2 border rounded-md text-sm"
+                        className="col-span-7 px-3 py-2 border rounded-lg text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors placeholder:text-muted-foreground/50"
                       />
                     </div>
                   );

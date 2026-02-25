@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { cn } from '../../../../lib/utils';
 import { SectionCard } from '../shared/SectionCard';
 import { TextInput } from '../shared/TextInput';
 import type { PositionReviewData } from '../../../../types/review';
@@ -208,25 +209,28 @@ export function PositionSection({ data, onChange, date }: PositionSectionProps) 
       badge={displayPositions.length}
     >
       {/* 当日盈亏汇总 */}
-      <div className="mb-6 p-4 bg-accent/50 rounded-lg">
+      <div className={cn(
+        "mb-6 p-4 rounded-lg border-l-4",
+        summary.totalProfit >= 0 ? "border-l-up bg-up/5" : "border-l-down bg-down/5"
+      )}>
         <div className="grid grid-cols-4 gap-4 text-center">
           <div>
             <div className="text-sm text-muted-foreground">当日盈亏</div>
-            <div className={`text-2xl font-bold ${summary.totalProfit >= 0 ? 'text-red-500' : 'text-green-500'}`}>
+            <div className={cn("text-2xl font-bold font-mono tabular-nums", summary.totalProfit >= 0 ? 'text-up' : 'text-down')}>
               {summary.totalProfit >= 0 ? '+' : ''}¥{summary.totalProfit.toFixed(2)}
             </div>
           </div>
           <div>
             <div className="text-sm text-muted-foreground">盈利</div>
-            <div className="text-2xl font-bold text-red-500">{summary.winCount}</div>
+            <div className="text-2xl font-bold font-mono tabular-nums text-up">{summary.winCount}</div>
           </div>
           <div>
             <div className="text-sm text-muted-foreground">亏损</div>
-            <div className="text-2xl font-bold text-green-500">{summary.lossCount}</div>
+            <div className="text-2xl font-bold font-mono tabular-nums text-down">{summary.lossCount}</div>
           </div>
           <div>
             <div className="text-sm text-muted-foreground">胜率</div>
-            <div className="text-2xl font-bold">{(summary.winRate * 100).toFixed(1)}%</div>
+            <div className="text-2xl font-bold font-mono tabular-nums">{(summary.winRate * 100).toFixed(1)}%</div>
           </div>
         </div>
       </div>
@@ -237,8 +241,9 @@ export function PositionSection({ data, onChange, date }: PositionSectionProps) 
           暂无持仓数据
         </div>
       ) : (
-        <div className="space-y-3">
-          <div className="grid grid-cols-12 gap-2 text-sm text-muted-foreground px-3">
+        <div className="space-y-2">
+          {/* 表头 */}
+          <div className="grid grid-cols-12 gap-2 text-sm text-muted-foreground px-4 py-2.5 bg-surface/50 rounded-t-lg font-medium">
             <div className="col-span-2">股票</div>
             <div className="col-span-1 text-right">当日涨跌幅</div>
             <div className="col-span-2 text-right">当日盈亏</div>
@@ -256,57 +261,57 @@ export function PositionSection({ data, onChange, date }: PositionSectionProps) 
             return (
               <div
                 key={pos.symbol}
-                className="grid grid-cols-12 gap-2 px-3 py-2 items-center border-b last:border-b-0 hover:bg-accent/30"
+                className="grid grid-cols-12 gap-2 px-4 py-3 items-center border-b last:border-b-0 bg-surface/30 hover:bg-surface/50 transition-colors rounded-lg"
               >
                 <div className="col-span-2">
                   <div className="font-medium">{pos.name}</div>
                   <div className="text-xs text-muted-foreground">{pos.symbol}</div>
                 </div>
 
-                <div className={`col-span-1 text-right ${isPositive ? 'text-red-500' : 'text-green-500'}`}>
+                <div className={cn("col-span-1 text-right font-mono tabular-nums text-sm", isPositive ? 'text-up' : 'text-down')}>
                   {isPositive ? '+' : ''}{pos.change.toFixed(2)}%
                 </div>
 
-                <div className={`col-span-2 text-right font-medium ${dailyProfitPositive ? 'text-red-500' : 'text-green-500'}`}>
+                <div className={cn("col-span-2 text-right font-medium font-mono tabular-nums text-sm", dailyProfitPositive ? 'text-up' : 'text-down')}>
                   {pos.dailyProfit >= 0 ? '+' : ''}¥{pos.dailyProfit.toFixed(2)}
                 </div>
 
-                <div className={`col-span-2 text-right text-sm ${pos.totalProfit >= 0 ? 'text-red-500' : 'text-green-500'}`}>
+                <div className={cn("col-span-2 text-right text-sm font-mono tabular-nums", pos.totalProfit >= 0 ? 'text-up' : 'text-down')}>
                   {pos.totalProfit >= 0 ? '+' : ''}¥{pos.totalProfit.toFixed(2)}
                 </div>
 
-                <div className="col-span-1 text-right text-sm">
+                <div className="col-span-1 text-right text-sm font-mono tabular-nums">
                   {pos.quantity}
                 </div>
 
                 <div className="col-span-2 text-right text-sm relative group cursor-pointer">
-                  <div>¥{pos.currentPrice.toFixed(2)}</div>
-                  <div className="text-xs text-muted-foreground">¥{pos.costPrice.toFixed(2)}</div>
+                  <div className="font-mono tabular-nums">¥{pos.currentPrice.toFixed(2)}</div>
+                  <div className="text-xs text-muted-foreground font-mono tabular-nums">¥{pos.costPrice.toFixed(2)}</div>
                   {/* 悬停时显示次日预测价 */}
-                  <div className="absolute right-0 top-full mt-1 z-10 hidden group-hover:block bg-popover border rounded-md shadow-lg p-2 text-xs min-w-[140px]">
-                    <div className="text-center text-muted-foreground mb-1 font-medium">次日预测价</div>
-                    <div className="grid grid-cols-2 gap-x-3 gap-y-1">
-                      <div className="flex justify-between">
+                  <div className="absolute right-0 top-full mt-2 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 bg-popover border rounded-xl shadow-lg p-3 text-xs min-w-[200px]">
+                    <div className="text-center text-muted-foreground mb-3 font-medium border-b pb-2">次日预测价</div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                      <div className="flex justify-between gap-2">
                         <span className="text-muted-foreground">最高</span>
-                        <span className={nextHighPositive ? 'text-red-500' : 'text-green-500'}>
+                        <span className={cn("font-mono font-medium", nextHighPositive ? 'text-up' : 'text-down')}>
                           ¥{(pos.nextHigh || 0).toFixed(2)}
                         </span>
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex justify-between gap-2">
                         <span className="text-muted-foreground">最低</span>
-                        <span className={!nextHighPositive ? 'text-red-500' : 'text-green-500'}>
+                        <span className={cn("font-mono font-medium", !nextHighPositive ? 'text-up' : 'text-down')}>
                           ¥{(pos.nextLow || 0).toFixed(2)}
                         </span>
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex justify-between gap-2">
                         <span className="text-muted-foreground">次高</span>
-                        <span className={nextHighPositive ? 'text-red-500' : 'text-green-500'}>
+                        <span className={cn("font-mono font-medium", nextHighPositive ? 'text-up' : 'text-down')}>
                           ¥{(pos.nextSecondaryHigh || 0).toFixed(2)}
                         </span>
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex justify-between gap-2">
                         <span className="text-muted-foreground">次低</span>
-                        <span className={!nextHighPositive ? 'text-red-500' : 'text-green-500'}>
+                        <span className={cn("font-mono font-medium", !nextHighPositive ? 'text-up' : 'text-down')}>
                           ¥{(pos.nextSecondaryLow || 0).toFixed(2)}
                         </span>
                       </div>

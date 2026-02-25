@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, Minus, RefreshCw, Settings, Check, Search, X } from 'lucide-react';
+import { cn } from '../../../../lib/utils';
 import { SectionCard } from '../shared/SectionCard';
 import { RadioGroup } from '../shared/RadioGroup';
 import { TextInput } from '../shared/TextInput';
@@ -289,16 +290,16 @@ export function MarketDataSection({ data, onChange }: MarketDataSectionProps) {
       <div className="space-y-4">
         {/* 市场概览 */}
         {marketStatus && (
-          <div className="flex items-center gap-4 p-3 bg-accent/50 rounded-lg text-sm">
+          <div className="flex items-center gap-4 p-3 bg-surface/50 rounded-lg border text-sm">
             <div>
               <span className="text-muted-foreground">涨/跌: </span>
-              <span className="font-medium text-red-500">{marketStatus.upCount}</span>
+              <span className="font-medium text-up">{marketStatus.upCount}</span>
               <span className="text-muted-foreground"> / </span>
-              <span className="font-medium text-green-500">{marketStatus.downCount}</span>
+              <span className="font-medium text-down">{marketStatus.downCount}</span>
             </div>
             <div>
               <span className="text-muted-foreground">平均涨跌: </span>
-              <span className={`font-medium ${marketStatus.avgChange >= 0 ? 'text-red-500' : 'text-green-500'}`}>
+              <span className={cn("font-medium font-mono tabular-nums", marketStatus.avgChange >= 0 ? 'text-up' : 'text-down')}>
                 {marketStatus.avgChange >= 0 ? '+' : ''}{marketStatus.avgChange.toFixed(2)}%
               </span>
             </div>
@@ -325,7 +326,7 @@ export function MarketDataSection({ data, onChange }: MarketDataSectionProps) {
                 disabled={isLoading}
                 className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
               >
-                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={cn("w-4 h-4", isLoading && 'animate-spin')} />
                 刷新
               </button>
             </div>
@@ -333,13 +334,13 @@ export function MarketDataSection({ data, onChange }: MarketDataSectionProps) {
 
           {/* 配置面板 */}
           {showConfig && (
-            <div className="p-3 bg-accent/30 rounded-lg border">
+            <div className="p-3 bg-surface/50 rounded-lg border">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-sm font-medium">选择要显示的指数</span>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={resetToDefault}
-                    className="text-xs px-2 py-1 bg-accent hover:bg-accent/60 rounded transition-colors"
+                    className="text-xs px-2 py-1 bg-surface hover:bg-surface-hover border rounded transition-colors"
                   >
                     恢复默认
                   </button>
@@ -360,7 +361,7 @@ export function MarketDataSection({ data, onChange }: MarketDataSectionProps) {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="搜索指数名称或代码..."
-                  className="w-full pl-9 pr-8 py-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full pl-9 pr-8 py-2 text-sm border rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
                 />
                 {searchQuery && (
                   <button
@@ -386,20 +387,19 @@ export function MarketDataSection({ data, onChange }: MarketDataSectionProps) {
                       <button
                         key={idx.code}
                         onClick={() => toggleIndex(idx.rawCode)}
-                        className={`
-                          w-full flex items-center justify-between px-3 py-2 rounded text-sm transition-colors
-                          ${isSelected
+                        className={cn(
+                          "w-full flex items-center justify-between px-3 py-2 rounded text-sm transition-colors",
+                          isSelected
                             ? 'bg-primary text-primary-foreground'
-                            : 'bg-background hover:bg-accent'
-                          }
-                        `}
+                            : 'bg-surface hover:bg-surface-hover'
+                        )}
                       >
                         <div className="flex items-center gap-2 flex-1">
                           {isSelected && <Check className="w-4 h-4" />}
                           <span className="font-medium">{idx.name}</span>
                           <span className="text-xs opacity-70">({idx.rawCode})</span>
                         </div>
-                        <div className={`text-xs font-medium ${isPositive ? 'text-red-500' : 'text-green-500'}`}>
+                        <div className={cn("text-xs font-medium font-mono tabular-nums", isPositive ? 'text-up' : 'text-down')}>
                           {isPositive ? '+' : ''}{idx.change.toFixed(2)}%
                         </div>
                       </button>
@@ -415,7 +415,7 @@ export function MarketDataSection({ data, onChange }: MarketDataSectionProps) {
           )}
 
           {error ? (
-            <div className="text-center py-4 text-red-500 text-sm">
+            <div className="text-center py-4 text-down text-sm">
               {error}
             </div>
           ) : displayIndices.length === 0 ? (
@@ -431,17 +431,18 @@ export function MarketDataSection({ data, onChange }: MarketDataSectionProps) {
                 return (
                   <div
                     key={idx.code}
-                    className="p-3 border rounded-lg hover:bg-accent/30 transition-colors cursor-default"
+                    className={cn(
+                      "p-3 border rounded-lg transition-colors cursor-default",
+                      isPositive ? "border-up/30 bg-up/5 hover:bg-up/10" : "border-down/30 bg-down/5 hover:bg-down/10"
+                    )}
                   >
                     <div className="text-xs text-muted-foreground mb-1 truncate" title={idx.name}>
                       {idx.name}
                     </div>
-                    <div className="text-lg font-bold mb-1">
+                    <div className="text-lg font-bold font-mono tabular-nums mb-1">
                       {idx.price?.toFixed(2) || '--'}
                     </div>
-                    <div className={`flex items-center gap-1 text-sm ${
-                      isFlat ? 'text-muted-foreground' : isPositive ? 'text-red-500' : 'text-green-500'
-                    }`}>
+                    <div className={cn("flex items-center gap-1 text-sm", isFlat ? 'text-flat' : isPositive ? 'text-up' : 'text-down')}>
                       {isFlat ? (
                         <Minus className="w-3 h-3" />
                       ) : isPositive ? (
@@ -449,11 +450,11 @@ export function MarketDataSection({ data, onChange }: MarketDataSectionProps) {
                       ) : (
                         <TrendingDown className="w-3 h-3" />
                       )}
-                      <span>{isPositive ? '+' : ''}{idx.change?.toFixed(2) || '0.00'}%</span>
+                      <span className="font-mono tabular-nums">{isPositive ? '+' : ''}{idx.change?.toFixed(2) || '0.00'}%</span>
                     </div>
                     {/* 显示高开低收 */}
                     <div className="mt-2 text-xs text-muted-foreground space-y-0.5">
-                      <div className="flex justify-between">
+                      <div className="flex justify-between font-mono tabular-nums">
                         <span>最高: {idx.high?.toFixed(2) || '--'}</span>
                         <span>最低: {idx.low?.toFixed(2) || '--'}</span>
                       </div>

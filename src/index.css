@@ -1,9 +1,12 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
+    /* ========== 基础色彩系统 (保持原有变量不变 - 向后兼容) ========== */
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
@@ -24,9 +27,76 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
     --radius: 0.5rem;
+
+    /* ========== 新增：扩展设计系统 ========== */
+    /* 表面色系统 */
+    --surface: 0 0% 100%;
+    --surface-hover: 210 40% 98%;
+    --surface-active: 210 40% 96%;
+
+    /* 金融语义色彩 - A股红涨绿跌 */
+    --up-primary: 0 72% 51%;
+    --up-foreground: 0 0% 100%;
+    --up-background: 0 72% 51% / 0.1;
+    --up-border: 0 72% 51% / 0.2;
+    --up-subtle: 0 72% 51% / 0.05;
+
+    --down-primary: 142 76% 36%;
+    --down-foreground: 0 0% 100%;
+    --down-background: 142 76% 36% / 0.1;
+    --down-border: 142 76% 36% / 0.2;
+    --down-subtle: 142 76% 36% / 0.05;
+
+    --flat-primary: 215 16% 47%;
+    --flat-background: 215 16% 47% / 0.1;
+
+    /* 功能色彩 */
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --warning-background: 38 92% 50% / 0.1;
+
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+    --info-background: 199 89% 48% / 0.1;
+
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --success-background: 142 76% 36% / 0.1;
+
+    /* 品牌色扩展 */
+    --brand-50: 217 91% 97%;
+    --brand-100: 217 91% 94%;
+    --brand-200: 217 91% 90%;
+    --brand-300: 217 91% 85%;
+    --brand-400: 217 91% 75%;
+    --brand-500: 221 83% 53%;
+    --brand-600: 221 83% 47%;
+    --brand-700: 221 83% 40%;
+    --brand-800: 221 83% 30%;
+    --brand-900: 221 83% 20%;
+
+    /* 圆角扩展 */
+    --radius-xs: 0.25rem;
+    --radius-sm: 0.375rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+    --radius-2xl: 1.25rem;
+
+    /* 阴影系统 */
+    --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+
+    /* 字体系统 */
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
   }
 
   .dark {
+    /* ========== 基础色彩系统 (保持原有变量不变 - 向后兼容) ========== */
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
     --card: 222.2 84% 4.9%;
@@ -46,6 +116,125 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 224.3 76.3% 48%;
+
+    /* ========== 新增：扩展设计系统 ========== */
+    --surface: 217 33% 17%;
+    --surface-hover: 217 33% 20%;
+    --surface-active: 217 33% 23%;
+
+    /* 金融语义色彩 - 暗黑模式调整 */
+    --up-primary: 0 72% 61%;
+    --up-background: 0 72% 61% / 0.15;
+    --up-border: 0 72% 61% / 0.3;
+
+    --down-primary: 142 71% 45%;
+    --down-background: 142 71% 45% / 0.15;
+    --down-border: 142 71% 45% / 0.3;
+
+    --flat-primary: 215 20% 65%;
+    --flat-background: 215 20% 65% / 0.1;
+
+    /* 功能色彩 - 暗黑模式 */
+    --warning: 38 92% 55%;
+    --warning-background: 38 92% 55% / 0.15;
+
+    --info: 199 89% 55%;
+    --info-background: 199 89% 55% / 0.15;
+
+    --success: 142 71% 45%;
+    --success-background: 142 71% 45% / 0.15;
+
+    /* 阴影系统 - 暗黑模式 */
+    --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* 数字使用等宽字体 */
+  .tabular-nums,
+  [data-tabular] {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer utilities {
+  /* 涨跌色快捷类 */
+  .text-up {
+    color: hsl(var(--up-primary));
+  }
+  .text-down {
+    color: hsl(var(--down-primary));
+  }
+  .text-flat {
+    color: hsl(var(--flat-primary));
+  }
+  .bg-up {
+    background-color: hsl(var(--up-background));
+  }
+  .bg-down {
+    background-color: hsl(var(--down-background));
+  }
+  .border-up {
+    border-color: hsl(var(--up-border));
+  }
+  .border-down {
+    border-color: hsl(var(--down-border));
+  }
+
+  /* 价格闪烁动画 */
+  @keyframes flash-up {
+    0% { background-color: hsl(var(--up-background)); }
+    100% { background-color: transparent; }
+  }
+  @keyframes flash-down {
+    0% { background-color: hsl(var(--down-background)); }
+    100% { background-color: transparent; }
+  }
+  .animate-flash-up {
+    animation: flash-up 0.5s ease-out;
+  }
+  .animate-flash-down {
+    animation: flash-down 0.5s ease-out;
+  }
+
+  /* 卡片悬停效果 */
+  .card-hover {
+    transition: all 0.15s ease;
+  }
+  .card-hover:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+
+  /* 滚动条美化 */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 3px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
   }
 }
 

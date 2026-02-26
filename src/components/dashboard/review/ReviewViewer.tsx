@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Trash2, Download, Edit, Share2, FileText, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Calendar, Trash2, Download, Edit, Share2, FileText, TrendingUp, TrendingDown, Minus, Sparkles, Loader2 } from 'lucide-react';
 import { Card } from '../../ui/card';
 import { Badge } from '../../ui/badge';
+import { Button } from '../../ui/button';
 import { reviewService } from '../../../services/reviewService';
 import type { DailyReview } from '../../../types/review';
 import { ReviewCalendar } from './ReviewCalendar';
 import { ReviewShareDialog } from './ReviewShareDialog';
+import { DailyReviewAnalysisDialog } from './DailyReviewAnalysisDialog';
 import { cn } from '../../../lib/utils';
 
 interface ReviewViewerProps {
@@ -22,6 +24,7 @@ export function ReviewViewer({ onEditDate }: ReviewViewerProps) {
   const [showCalendar, setShowCalendar] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [shareReview, setShareReview] = useState<DailyReview | null>(null);
+  const [analysisReview, setAnalysisReview] = useState<DailyReview | null>(null);
 
   // 加载所有复盘记录
   useEffect(() => {
@@ -208,6 +211,14 @@ export function ReviewViewer({ onEditDate }: ReviewViewerProps) {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setAnalysisReview(selectedReview)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-primary/10 transition-colors text-sm text-primary"
+                    title="AI评价"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span className="hidden sm:inline">AI评价</span>
+                  </button>
                   <button
                     onClick={() => setShareReview(selectedReview)}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-surface-hover transition-colors text-sm"
@@ -510,6 +521,14 @@ export function ReviewViewer({ onEditDate }: ReviewViewerProps) {
           review={shareReview}
           isOpen={!!shareReview}
           onClose={() => setShareReview(null)}
+        />
+      )}
+
+      {/* AI评价弹窗 */}
+      {analysisReview && (
+        <DailyReviewAnalysisDialog
+          review={analysisReview}
+          onClose={() => setAnalysisReview(null)}
         />
       )}
     </div>

@@ -30,6 +30,7 @@ export interface Transaction {
 // 股票持仓数据
 export interface Position {
   id: string
+  accountId?: string    // 所属账户ID（多账户支持）
   symbol: string        // 股票代码，如 "600519.SH"
   name: string          // 股票名称，如 "贵州茅台"
   costPrice: number     // 成本价（根据买卖记录动态计算）

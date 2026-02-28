@@ -37,10 +37,12 @@ import {
   deleteReasonTag,
 } from '../../services/tagService'
 import { formatCurrency, formatPercent } from '../../lib/utils'
+import { getDefaultAccount } from '../../services/accountService'
 
 interface PositionManagerProps {
   positions: Position[]
   onPositionsChange: (positions: Position[]) => void
+  currentAccountId?: string | null  // 当前账户ID，null 表示全部账户
 }
 
 // 计算最新成本价
@@ -56,6 +58,7 @@ function calculateCostPrice(
 export function PositionManager({
   positions,
   onPositionsChange,
+  currentAccountId,
 }: PositionManagerProps) {
   const [showAddForm, setShowAddForm] = useState(false)
   const [symbol, setSymbol] = useState('')
@@ -187,8 +190,12 @@ export function PositionManager({
         : undefined,
     }
 
+    // 获取实际账户ID（全部账户视图时使用默认账户）
+    const actualAccountId = currentAccountId || getDefaultAccount().id
+
     const newPosition: Position = {
       id: `${symbol}-${Date.now()}`,
+      accountId: actualAccountId,
       symbol,
       name: quote.name,
       costPrice: cost,

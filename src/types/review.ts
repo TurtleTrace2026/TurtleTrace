@@ -22,6 +22,25 @@ export interface MarketReviewData {
   keyStats: KeyStat[];
   marketMood: 'bullish' | 'bearish' | 'neutral';  // 市场情绪
   moodNote?: string;           // 情绪备注
+  sectorRotation?: SectorRotationData[];  // 板块轮动数据
+}
+
+/** 板块轮动数据 */
+export interface SectorRotationData {
+  name: string;           // 板块名称
+  change: number;         // 今日涨幅 (%)
+  mainNetInflow: number;  // 主力净流入（元）
+  mainNetRatio: number;   // 主力净占比 (%)
+  // 详细数据
+  superLargeNetInflow: number;   // 超大单净流入
+  superLargeNetRatio: number;    // 超大单净占比
+  largeNetInflow: number;        // 大单净流入
+  largeNetRatio: number;         // 大单净占比
+  mediumNetInflow: number;       // 中单净流入
+  mediumNetRatio: number;        // 中单净占比
+  smallNetInflow: number;        // 小单净流入
+  smallNetRatio: number;         // 小单净占比
+  topStock: string;              // 主力净流入最大股
 }
 
 export interface MarketIndex {

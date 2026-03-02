@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, Minus, RefreshCw, Settings, Check, Search, X } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, RefreshCw, Settings, Check, Search, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '../../../../lib/utils';
 import { SectionCard } from '../shared/SectionCard';
 import { RadioGroup } from '../shared/RadioGroup';
 import { TextInput } from '../shared/TextInput';
-import type { MarketReviewData } from '../../../../types/review';
+import type { MarketReviewData, SectorRotationData } from '../../../../types/review';
 
 interface IndexData {
   name: string;
@@ -68,6 +68,48 @@ interface EastMoneyResponse {
   };
 }
 
+// 板块轮动数据类型（内部使用）
+interface SectorData {
+  name: string;           // 板块名称
+  change: number;         // 今日涨幅 (%)
+  mainNetInflow: number;  // 主力净流入（元）
+  mainNetRatio: number;   // 主力净占比 (%)
+  // 详细数据
+  superLargeNetInflow: number;   // 超大单净流入
+  superLargeNetRatio: number;    // 超大单净占比
+  largeNetInflow: number;        // 大单净流入
+  largeNetRatio: number;         // 大单净占比
+  mediumNetInflow: number;       // 中单净流入
+  mediumNetRatio: number;        // 中单净占比
+  smallNetInflow: number;        // 小单净流入
+  smallNetRatio: number;         // 小单净占比
+  topStock: string;              // 主力净流入最大股
+}
+
+// 板块轮动 API 响应类型
+interface EastMoneySectorItem {
+  f3: number;    // 今日涨幅
+  f14: string;   // 板块名称
+  f62: number;   // 主力净流入
+  f184: number;  // 主力净占比
+  f66: number;   // 超大单净流入
+  f69: number;   // 超大单净占比
+  f72: number;   // 大单净流入
+  f75: number;   // 大单净占比
+  f78: number;   // 中单净流入
+  f81: number;   // 中单净占比
+  f84: number;   // 小单净流入
+  f87: number;   // 小单净占比
+  f204: string;  // 主力净流入最大股
+}
+
+interface EastMoneySectorResponse {
+  data?: {
+    diff?: EastMoneySectorItem[];
+    total?: number;
+  };
+}
+
 // 从 localStorage 读取用户配置
 function loadUserIndexConfig(availableCodes: string[]): string[] {
   try {
@@ -101,6 +143,13 @@ export function MarketDataSection({ data, onChange }: MarketDataSectionProps) {
   const [error, setError] = useState<string | null>(null);
   const [showConfig, setShowConfig] = useState(false);  // 是否显示配置面板
   const [searchQuery, setSearchQuery] = useState('');  // 搜索关键词
+
+  // 板块轮动相关状态
+  const [sectorData, setSectorData] = useState<SectorData[]>([]);
+  const [sectorLoading, setSectorLoading] = useState(false);
+  const [sectorError, setSectorError] = useState<string | null>(null);
+  const [showAllSectors, setShowAllSectors] = useState(false);  // 是否显示全部板块
+  const [expandedSector, setExpandedSector] = useState<string | null>(null);  // 展开的板块名称
 
   // 获取所有指数数据（一次性获取）
   const fetchAllIndices = async () => {
@@ -182,6 +231,79 @@ export function MarketDataSection({ data, onChange }: MarketDataSectionProps) {
     } as MarketReviewData);
   };
 
+  // 获取板块轮动数据
+  const fetchSectorRotation = async () => {
+    setSectorLoading(true);
+    setSectorError(null);
+
+    try {
+      const url = 'https://push2.eastmoney.com/api/qt/clist/get?fid=f3&po=1&pz=50&pn=1&np=1&fltt=2&invt=2&ut=8dec03ba335b81bf4ebdf7b29ec27d15&fs=m:90+s:4&fields=f3,f14,f62,f184,f66,f69,f72,f75,f78,f81,f84,f87,f204';
+
+      const response = await fetch(url);
+      const result: EastMoneySectorResponse = await response.json();
+
+      if (result?.data?.diff) {
+        // 转换数据，按涨幅降序排序
+        const sectors: SectorData[] = result.data.diff
+          .map(item => ({
+            name: item.f14,
+            change: item.f3,
+            mainNetInflow: item.f62,
+            mainNetRatio: item.f184,
+            superLargeNetInflow: item.f66,
+            superLargeNetRatio: item.f69,
+            largeNetInflow: item.f72,
+            largeNetRatio: item.f75,
+            mediumNetInflow: item.f78,
+            mediumNetRatio: item.f81,
+            smallNetInflow: item.f84,
+            smallNetRatio: item.f87,
+            topStock: item.f204 || '',
+          }))
+          .sort((a, b) => b.change - a.change);
+
+        setSectorData(sectors);
+
+        // 保存板块数据到 review
+        saveSectorDataToReview(sectors);
+      } else {
+        setSectorError('获取板块数据失败');
+      }
+    } catch (err) {
+      console.error('获取板块数据失败:', err);
+      setSectorError('网络请求失败');
+    } finally {
+      setSectorLoading(false);
+    }
+  };
+
+  // 保存板块数据到 review
+  const saveSectorDataToReview = (sectors: SectorData[]) => {
+    const currentData = data || { indices: [], keyStats: [], marketMood: 'neutral' as const };
+
+    // 转换为 SectorRotationData 格式
+    const sectorRotationData: SectorRotationData[] = sectors.map(s => ({
+      name: s.name,
+      change: s.change,
+      mainNetInflow: s.mainNetInflow,
+      mainNetRatio: s.mainNetRatio,
+      superLargeNetInflow: s.superLargeNetInflow,
+      superLargeNetRatio: s.superLargeNetRatio,
+      largeNetInflow: s.largeNetInflow,
+      largeNetRatio: s.largeNetRatio,
+      mediumNetInflow: s.mediumNetInflow,
+      mediumNetRatio: s.mediumNetRatio,
+      smallNetInflow: s.smallNetInflow,
+      smallNetRatio: s.smallNetRatio,
+      topStock: s.topStock,
+    }));
+
+    onChange({
+      ...currentData,
+      sectorRotation: sectorRotationData,
+    } as MarketReviewData);
+  };
+
   // 格式化指数代码 (将API返回的代码格式转换为标准格式)
   const formatIndexCode = (code: string, market: number): string => {
     const code6 = code.substring(0, 6);
@@ -232,15 +354,27 @@ export function MarketDataSection({ data, onChange }: MarketDataSectionProps) {
     saveIndicesDataToReview(allIndices);
   };
 
+  // 格式化金额（元 -> 亿/万）
+  const formatAmount = (value: number): string => {
+    if (Math.abs(value) >= 1e8) {
+      return (value / 1e8).toFixed(2) + '亿';
+    } else if (Math.abs(value) >= 1e4) {
+      return (value / 1e4).toFixed(2) + '万';
+    }
+    return value.toFixed(2);
+  };
+
   // 初始化加载数据
   useEffect(() => {
     fetchAllIndices();
+    fetchSectorRotation();
   }, []);
 
   // 自动刷新（每5分钟）
   useEffect(() => {
     const interval = setInterval(() => {
       fetchAllIndices();
+      fetchSectorRotation();
     }, 5 * 60 * 1000);
 
     return () => clearInterval(interval);
@@ -462,6 +596,148 @@ export function MarketDataSection({ data, onChange }: MarketDataSectionProps) {
                   </div>
                 );
               })}
+            </div>
+          )}
+        </div>
+
+        {/* 板块轮动 */}
+        <div className="space-y-3 pt-3 border-t">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-medium text-muted-foreground">
+              板块轮动
+              <span className="ml-2 text-xs text-muted-foreground">({sectorData.length})</span>
+            </h4>
+            <button
+              onClick={fetchSectorRotation}
+              disabled={sectorLoading}
+              className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={cn("w-4 h-4", sectorLoading && 'animate-spin')} />
+              刷新
+            </button>
+          </div>
+
+          {sectorError ? (
+            <div className="text-center py-4 text-down text-sm">
+              {sectorError}
+            </div>
+          ) : sectorData.length === 0 ? (
+            <div className="text-center py-4 text-muted-foreground text-sm">
+              {sectorLoading ? '加载中...' : '暂无板块数据'}
+            </div>
+          ) : (
+            <div className="border rounded-lg overflow-hidden">
+              {/* 表头 */}
+              <div className="grid grid-cols-4 gap-2 px-3 py-2 bg-surface/50 text-xs text-muted-foreground font-medium">
+                <div>板块名称</div>
+                <div className="text-right">涨幅</div>
+                <div className="text-right">主力净流入</div>
+                <div className="text-right">主力净占比</div>
+              </div>
+              {/* 数据行 */}
+              {(showAllSectors ? sectorData : sectorData.slice(0, 10)).map((sector) => {
+                const isExpanded = expandedSector === sector.name;
+                const isPositive = sector.change >= 0;
+
+                return (
+                  <div key={sector.name} className="border-t">
+                    {/* 主行 */}
+                    <div
+                      className={cn(
+                        "grid grid-cols-4 gap-2 px-3 py-2 cursor-pointer hover:bg-surface/50 transition-colors",
+                        isExpanded && "bg-surface/30"
+                      )}
+                      onClick={() => setExpandedSector(isExpanded ? null : sector.name)}
+                    >
+                      <div className="flex items-center gap-1">
+                        {isExpanded ? (
+                          <ChevronUp className="w-3 h-3 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                        )}
+                        <span className="text-sm truncate">{sector.name}</span>
+                      </div>
+                      <div className={cn(
+                        "text-right text-sm font-mono tabular-nums",
+                        isPositive ? "text-up" : "text-down"
+                      )}>
+                        {isPositive ? '+' : ''}{sector.change.toFixed(2)}%
+                      </div>
+                      <div className={cn(
+                        "text-right text-sm font-mono tabular-nums",
+                        sector.mainNetInflow >= 0 ? "text-up" : "text-down"
+                      )}>
+                        {sector.mainNetInflow >= 0 ? '+' : ''}{formatAmount(sector.mainNetInflow)}
+                      </div>
+                      <div className={cn(
+                        "text-right text-sm font-mono tabular-nums",
+                        sector.mainNetRatio >= 0 ? "text-up" : "text-down"
+                      )}>
+                        {sector.mainNetRatio >= 0 ? '+' : ''}{sector.mainNetRatio.toFixed(2)}%
+                      </div>
+                    </div>
+                    {/* 展开详情 */}
+                    {isExpanded && (
+                      <div className="px-3 py-3 bg-surface/30 text-sm space-y-2">
+                        {sector.topStock && (
+                          <div className="text-muted-foreground">
+                            领涨股: <span className="text-foreground font-medium">{sector.topStock}</span>
+                          </div>
+                        )}
+                        <div className="grid grid-cols-2 gap-4 text-xs">
+                          <div className="space-y-1">
+                            <div className="text-muted-foreground">超大单</div>
+                            <div className={cn(
+                              "font-mono tabular-nums",
+                              sector.superLargeNetInflow >= 0 ? "text-up" : "text-down"
+                            )}>
+                              {sector.superLargeNetInflow >= 0 ? '+' : ''}{formatAmount(sector.superLargeNetInflow)} ({sector.superLargeNetRatio >= 0 ? '+' : ''}{sector.superLargeNetRatio.toFixed(2)}%)
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <div className="text-muted-foreground">大单</div>
+                            <div className={cn(
+                              "font-mono tabular-nums",
+                              sector.largeNetInflow >= 0 ? "text-up" : "text-down"
+                            )}>
+                              {sector.largeNetInflow >= 0 ? '+' : ''}{formatAmount(sector.largeNetInflow)} ({sector.largeNetRatio >= 0 ? '+' : ''}{sector.largeNetRatio.toFixed(2)}%)
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <div className="text-muted-foreground">中单</div>
+                            <div className={cn(
+                              "font-mono tabular-nums",
+                              sector.mediumNetInflow >= 0 ? "text-up" : "text-down"
+                            )}>
+                              {sector.mediumNetInflow >= 0 ? '+' : ''}{formatAmount(sector.mediumNetInflow)} ({sector.mediumNetRatio >= 0 ? '+' : ''}{sector.mediumNetRatio.toFixed(2)}%)
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <div className="text-muted-foreground">小单</div>
+                            <div className={cn(
+                              "font-mono tabular-nums",
+                              sector.smallNetInflow >= 0 ? "text-up" : "text-down"
+                            )}>
+                              {sector.smallNetInflow >= 0 ? '+' : ''}{formatAmount(sector.smallNetInflow)} ({sector.smallNetRatio >= 0 ? '+' : ''}{sector.smallNetRatio.toFixed(2)}%)
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {/* 查看全部/收起 */}
+              {sectorData.length > 10 && (
+                <div className="text-center py-2">
+                  <button
+                    onClick={() => setShowAllSectors(!showAllSectors)}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    {showAllSectors ? '收起' : `查看全部 (${sectorData.length} 个板块)`}
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

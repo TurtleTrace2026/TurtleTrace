@@ -8,6 +8,7 @@ import { AccountSwitcher } from './components/dashboard/AccountSwitcher'
 import { AccountManager } from './components/dashboard/AccountManager'
 import { LineChart, TrendingUp, Newspaper, Database, BookOpen, Menu, X, Wallet, ChevronRight, Building2 } from 'lucide-react'
 import { TCalculatorTrigger } from './components/dashboard/TCalculator'
+import { WelcomeWizard } from './components/welcome'
 import type { Position, ProfitSummary } from './types'
 import type { Account } from './types/account'
 import { calculateProfitSummary, calculateClearedProfit } from './utils/calculations'
@@ -21,11 +22,15 @@ import {
   initializeAccountSystem,
   getAccountStats,
 } from './services/accountService'
+import { isWelcomeCompleted } from './services/welcomeService'
 
 function App() {
   // 用于记录上一次的持仓数据，避免重复保存
   // 初始值为 null 表示还未初始化
   const prevPositionsRef = useRef<string | null>(null)
+
+  // 欢迎页状态
+  const [showWelcome, setShowWelcome] = useState(!isWelcomeCompleted())
 
   // 持仓数据
   const [positions, setPositions] = useState<Position[]>([])
@@ -206,6 +211,21 @@ function App() {
     { id: 'accounts' as const, label: '账户管理', icon: Building2 },
     { id: 'data' as const, label: '设置', icon: Database },
   ]
+
+  // 欢迎页完成处理
+  const handleWelcomeComplete = useCallback(() => {
+    setShowWelcome(false)
+    // 重新加载账户和持仓数据
+    setAccounts(getAccounts())
+    const lastActive = getLastActiveAccount()
+    setCurrentAccountId(lastActive.id)
+    setAllPositions(getPositions())
+  }, [])
+
+  // 显示欢迎页
+  if (showWelcome) {
+    return <WelcomeWizard onComplete={handleWelcomeComplete} />
+  }
 
   return (
     <div className="min-h-screen bg-background flex">

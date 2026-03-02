@@ -13,16 +13,10 @@ export async function getMarketNews(): Promise<NewsItem[]> {
     })
 
     if (!response.ok) {
-      console.error('API请求失败:', response.status, response.statusText)
       return []
     }
 
     const result: any = await response.json()
-
-    console.log('API返回完整数据:', result)
-    console.log('result.data:', result?.data)
-    console.log('result.data类型:', typeof result?.data)
-    console.log('result.data是否为数组:', Array.isArray(result?.data))
 
     // 尝试多种数据结构
     let newsList: any[] = []
@@ -37,29 +31,18 @@ export async function getMarketNews(): Promise<NewsItem[]> {
     }
     // 结构3: data 是对象但有不同的键名
     else if (result?.data && typeof result.data === 'object') {
-      console.log('data对象的键:', Object.keys(result.data))
       // 尝试找到数组字段
       for (const key of Object.keys(result.data)) {
         if (Array.isArray(result.data[key])) {
-          console.log(`找到数组字段: ${key}, 长度:`, result.data[key].length)
           newsList = result.data[key]
           break
         }
       }
     }
 
-    console.log('最终解析到的新闻列表:', newsList)
-
     if (!Array.isArray(newsList) || newsList.length === 0) {
-      console.error('无法找到新闻数组')
       return []
     }
-
-    console.log('新闻数量:', newsList.length)
-    console.log('第一条新闻示例:', newsList[0])
-    console.log('第一条新闻的summary字段:', newsList[0]?.summary)
-    console.log('第一条新闻的ltext字段:', newsList[0]?.ltext)
-    console.log('第一条新闻的content字段:', newsList[0]?.content)
 
     // 使用 Set 去重，避免重复ID
     const seenIds = new Set<string>()
@@ -87,7 +70,6 @@ export async function getMarketNews(): Promise<NewsItem[]> {
       }
     })
   } catch (error) {
-    console.error('获取市场快讯失败:', error)
     return []
   }
 }

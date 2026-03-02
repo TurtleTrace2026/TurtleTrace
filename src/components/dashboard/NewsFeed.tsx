@@ -33,27 +33,16 @@ export function NewsFeed({ symbols: _symbols }: NewsFeedProps) {
     setIsRefreshing(true)
     setError(null)
     try {
-      console.log('开始加载新闻...')
       const marketNews = await getMarketNews()
-      console.log('获取到的新闻数据:', marketNews)
-      console.log('新闻数量:', marketNews.length)
 
       if (!Array.isArray(marketNews)) {
-        console.error('返回的不是数组:', typeof marketNews, marketNews)
         setError('数据格式错误')
         setNews([])
         return
       }
 
-      // 调试：查看第一条新闻的summary字段
-      if (marketNews.length > 0) {
-        console.log('第一条新闻完整数据:', marketNews[0])
-        console.log('第一条新闻summary:', marketNews[0].summary)
-      }
-
       setNews(marketNews)
     } catch (err) {
-      console.error('加载新闻失败:', err)
       setError('加载失败，请重试')
       setNews([])
     } finally {

@@ -4,7 +4,7 @@ import { cn } from '../../../../lib/utils';
 import { SectionCard } from '../shared/SectionCard';
 import { RadioGroup } from '../shared/RadioGroup';
 import { TextInput } from '../shared/TextInput';
-import type { MarketReviewData, SectorRotationData } from '../../../../types/review';
+import type { MarketReviewData, SectorRotationData, MarketBreadthData } from '../../../../types/review';
 
 interface IndexData {
   name: string;
@@ -110,6 +110,52 @@ interface EastMoneySectorResponse {
   };
 }
 
+// 涨跌分布数据类型（内部使用）
+interface BreadthData {
+  upCount: number;        // 上涨股票数量
+  downCount: number;      // 下跌股票数量
+  limitUp: number;        // 涨停数量
+  limitDown: number;      // 跌停数量
+  distribution: number[]; // 23个区间的股票数量（-11到11）
+}
+
+// 东方财富涨跌分布 API 响应类型
+interface EastMoneyZDFenBuResponse {
+  data: {
+    qdate: string;  // 涨跌分布时间
+    fenbu: {
+      [key: string]: number; // -11到11的区间分布
+    };
+  };
+}
+
+// 涨跌分布区间标签（23个区间）
+const DISTRIBUTION_LABELS = [
+  '跌停',      // -11
+  '<-9%',      // -10
+  '-9%~-8%',   // -9
+  '-8%~-7%',   // -8
+  '-7%~-6%',   // -7
+  '-6%~-5%',   // -6
+  '-5%~-4%',   // -5
+  '-4%~-3%',   // -4
+  '-3%~-2%',   // -3
+  '-2%~-1%',   // -2
+  '-1%~0%',    // -1
+  '0%',        // 0
+  '0%~1%',     // 1
+  '1%~2%',     // 2
+  '2%~3%',     // 3
+  '3%~4%',     // 4
+  '4%~5%',     // 5
+  '5%~6%',     // 6
+  '6%~7%',     // 7
+  '7%~8%',     // 8
+  '8%~9%',     // 9
+  '9%~10%',    // 10
+  '涨停',      // 11
+];
+
 // 从 localStorage 读取用户配置
 function loadUserIndexConfig(availableCodes: string[]): string[] {
   try {
@@ -150,6 +196,11 @@ export function MarketDataSection({ data, onChange }: MarketDataSectionProps) {
   const [sectorError, setSectorError] = useState<string | null>(null);
   const [showAllSectors, setShowAllSectors] = useState(false);  // 是否显示全部板块
   const [expandedSector, setExpandedSector] = useState<string | null>(null);  // 展开的板块名称
+
+  // 涨跌分布相关状态
+  const [breadthData, setBreadthData] = useState<BreadthData | null>(null);
+  const [breadthLoading, setBreadthLoading] = useState(false);
+  const [breadthError, setBreadthError] = useState<string | null>(null);
 
   // 获取所有指数数据（一次性获取）
   const fetchAllIndices = async () => {
@@ -304,6 +355,161 @@ export function MarketDataSection({ data, onChange }: MarketDataSectionProps) {
     } as MarketReviewData);
   };
 
+  // 获取涨跌分布数据（使用东方财富 API，JSONP 方式）
+  const fetchMarketBreadth = async () => {
+    setBreadthLoading(true);
+    setBreadthError(null);
+
+    try {
+      // 使用 JSONP 方式请求东方财富 API
+      const callbackName = `jsonp_callback_${Date.now()}`;
+      const url = `https://push2ex.eastmoney.com/getTopicZDFenBu?cb=${callbackName}&ut=7eea3edcaed734bea9cbfc24409ed989&dpt=wz.ztzt&_=${Date.now()}`;
+
+      // 创建 JSONP 请求
+      const jsonpPromise = new Promise<EastMoneyZDFenBuResponse>((resolve, reject) => {
+        // 在 window 上定义回调函数
+        (window as any)[callbackName] = (data: EastMoneyZDFenBuResponse) => {
+          resolve(data);
+          delete (window as any)[callbackName];
+        };
+
+        // 创建 script 标签
+        const script = document.createElement('script');
+        script.src = url;
+        script.onerror = () => {
+          reject(new Error('JSONP 请求失败'));
+          delete (window as any)[callbackName];
+        };
+
+        // 设置超时
+        const timeout = setTimeout(() => {
+          reject(new Error('请求超时'));
+          delete (window as any)[callbackName];
+          document.head.removeChild(script);
+        }, 10000);
+
+        script.onload = () => {
+          clearTimeout(timeout);
+        };
+
+        document.head.appendChild(script);
+      });
+
+      const result = await jsonpPromise;
+      console.log('东方财富涨跌分布 API 返回:', result);
+      console.log('fenbu 原始数据:', result?.data?.fenbu);
+
+      if (result?.data?.fenbu) {
+        const fenbu = result.data.fenbu;
+
+        // 辅助函数：提取数值（处理数组元素可能是对象的情况）
+        const extractNumber = (value: any): number => {
+          if (typeof value === 'number') return value;
+          if (value && typeof value === 'object') {
+            const keys = Object.keys(value);
+            if (keys.length > 0) return Number(value[keys[0]]) || 0;
+          }
+          return 0;
+        };
+
+        // 创建一个 Map 来存储键值对
+        const fenbuMap: Map<string, number> = new Map();
+
+        if (Array.isArray(fenbu)) {
+          // 如果是数组，数组元素可能是对象，其键是 "-11", "-10" 等
+          console.log('fenbu 是数组，长度:', fenbu.length);
+          fenbu.forEach((item: any) => {
+            if (item && typeof item === 'object') {
+              // 遍历对象的键
+              Object.keys(item).forEach(key => {
+                const numKey = parseInt(key);
+                if (!isNaN(numKey) && numKey >= -11 && numKey <= 11) {
+                  fenbuMap.set(key, Number(item[key]) || 0);
+                  console.log(`映射: fenbu["${key}"] = ${item[key]}`);
+                }
+              });
+            }
+          });
+        } else if (typeof fenbu === 'object') {
+          // 如果是对象，直接使用键值对
+          console.log('fenbu 是对象，键:', Object.keys(fenbu));
+          Object.entries(fenbu).forEach(([key, value]) => {
+            const numKey = parseInt(key);
+            if (!isNaN(numKey) && numKey >= -11 && numKey <= 11) {
+              fenbuMap.set(key, extractNumber(value));
+              console.log(`映射: fenbu["${key}"] = ${extractNumber(value)}`);
+            }
+          });
+        }
+
+        // 按照键 -11 到 11 的顺序构建 distribution 数组
+        const distribution: number[] = [];
+        for (let i = -11; i <= 11; i++) {
+          const count = fenbuMap.get(i.toString()) || 0;
+          distribution.push(count);
+        }
+
+        console.log('distribution 数组 (键 -11 到 11):', distribution);
+
+        // 计算涨跌数量
+        // 索引 0-10 对应键 -11 到 -1（下跌）
+        // 索引 11 对应键 0（平盘）
+        // 索引 12-22 对应键 1 到 11（上涨）
+        let upCount = 0;
+        let downCount = 0;
+        distribution.forEach((count, index) => {
+          if (index < 11) downCount += count;      // 索引 0-10 对应下跌
+          else if (index > 11) upCount += count;   // 索引 12-22 对应上涨
+        });
+        console.log('涨跌统计 - 上涨:', upCount, '下跌:', downCount);
+
+        // 获取涨跌停数量
+        // 索引 0 对应键 -11（跌停）
+        // 索引 22 对应键 11（涨停）
+        const limitDown = fenbuMap.get('-11') || 0;
+        const limitUp = fenbuMap.get('11') || 0;
+        console.log('涨跌停 - 涨停:', limitUp, '跌停:', limitDown);
+
+        const breadth: BreadthData = {
+          upCount,
+          downCount,
+          limitUp,
+          limitDown,
+          distribution,
+        };
+        console.log('最终 breadth 数据:', breadth);
+
+        setBreadthData(breadth);
+        saveBreadthDataToReview(breadth);
+      } else {
+        setBreadthError('获取涨跌分布数据失败');
+      }
+    } catch (err) {
+      console.error('获取涨跌分布数据失败:', err);
+      setBreadthError('网络请求失败');
+    } finally {
+      setBreadthLoading(false);
+    }
+  };
+
+  // 保存涨跌分布数据到 review
+  const saveBreadthDataToReview = (breadth: BreadthData) => {
+    const currentData = data || { indices: [], keyStats: [], marketMood: 'neutral' as const };
+
+    const marketBreadthData: MarketBreadthData = {
+      upCount: breadth.upCount,
+      downCount: breadth.downCount,
+      limitUp: breadth.limitUp,
+      limitDown: breadth.limitDown,
+      distribution: breadth.distribution,
+    };
+
+    onChange({
+      ...currentData,
+      marketBreadth: marketBreadthData,
+    } as MarketReviewData);
+  };
+
   // 格式化指数代码 (将API返回的代码格式转换为标准格式)
   const formatIndexCode = (code: string, market: number): string => {
     const code6 = code.substring(0, 6);
@@ -368,6 +574,7 @@ export function MarketDataSection({ data, onChange }: MarketDataSectionProps) {
   useEffect(() => {
     fetchAllIndices();
     fetchSectorRotation();
+    fetchMarketBreadth();
   }, []);
 
   // 自动刷新（每5分钟）
@@ -375,6 +582,7 @@ export function MarketDataSection({ data, onChange }: MarketDataSectionProps) {
     const interval = setInterval(() => {
       fetchAllIndices();
       fetchSectorRotation();
+      fetchMarketBreadth();
     }, 5 * 60 * 1000);
 
     return () => clearInterval(interval);
@@ -596,6 +804,85 @@ export function MarketDataSection({ data, onChange }: MarketDataSectionProps) {
                   </div>
                 );
               })}
+            </div>
+          )}
+        </div>
+
+                {/* 涨跌分布 */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-medium text-muted-foreground">涨跌分布</h4>
+            <button
+              onClick={fetchMarketBreadth}
+              disabled={breadthLoading}
+              className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={cn("w-4 h-4", breadthLoading && 'animate-spin')} />
+              刷新
+            </button>
+          </div>
+
+          {breadthError ? (
+            <div className="text-center py-4 text-down text-sm">{breadthError}</div>
+          ) : breadthData ? (
+            <div className="space-y-3">
+              {/* 统计卡片 */}
+              <div className="grid grid-cols-4 gap-2">
+                <div className="p-2 bg-up/10 rounded-lg text-center">
+                  <div className="text-xs text-muted-foreground">上涨</div>
+                  <div className="text-lg font-bold text-up font-mono tabular-nums">{breadthData.upCount}</div>
+                </div>
+                <div className="p-2 bg-down/10 rounded-lg text-center">
+                  <div className="text-xs text-muted-foreground">下跌</div>
+                  <div className="text-lg font-bold text-down font-mono tabular-nums">{breadthData.downCount}</div>
+                </div>
+                <div className="p-2 bg-up/10 rounded-lg text-center">
+                  <div className="text-xs text-muted-foreground">涨停</div>
+                  <div className="text-lg font-bold text-up font-mono tabular-nums">{breadthData.limitUp}</div>
+                </div>
+                <div className="p-2 bg-down/10 rounded-lg text-center">
+                  <div className="text-xs text-muted-foreground">跌停</div>
+                  <div className="text-lg font-bold text-down font-mono tabular-nums">{breadthData.limitDown}</div>
+                </div>
+              </div>
+
+              {/* 柱状图 */}
+              <div className="p-3 bg-surface/30 rounded-lg border">
+                <div className="flex items-end justify-between gap-0.5 h-24 mb-2">
+                  {breadthData.distribution.map((count, index) => {
+                    const maxCount = Math.max(...breadthData.distribution);
+                    const height = maxCount > 0 ? (count / maxCount) * 100 : 0;
+                    // 索引 0-11 对应 -11 到 -1（下跌），12 对应 1（0%单独处理），13-22 对应 2-11（上涨）
+                    const isUp = index > 11;
+                    const isFlat = index === 11; // 0% 附近
+                    return (
+                      <div
+                        key={index}
+                        className={cn(
+                          "flex-1 rounded-t transition-all cursor-pointer hover:opacity-80 min-w-[8px]",
+                          isFlat ? "bg-muted-foreground/40" : isUp ? "bg-up/60" : "bg-down/60"
+                        )}
+                        style={{ height: `${Math.max(height, 2)}%` }}
+                        title={`${DISTRIBUTION_LABELS[index]}: ${count}只`}
+                      />
+                    );
+                  })}
+                </div>
+                {/* X轴标签 */}
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>跌停</span>
+                  <span>-6%</span>
+                  <span>-3%</span>
+                  <span>0%</span>
+                  <span>+3%</span>
+                  <span>+6%</span>
+                  <span>涨停</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-4 text-muted-foreground text-sm">
+              {breadthLoading ? '加载中...' : '暂无涨跌分布数据'}
             </div>
           )}
         </div>

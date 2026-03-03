@@ -23,6 +23,16 @@ export interface MarketReviewData {
   marketMood: 'bullish' | 'bearish' | 'neutral';  // 市场情绪
   moodNote?: string;           // 情绪备注
   sectorRotation?: SectorRotationData[];  // 板块轮动数据
+  marketBreadth?: MarketBreadthData;  // 涨跌分布数据
+}
+
+/** 涨跌分布数据 */
+export interface MarketBreadthData {
+  upCount: number;        // 上涨股票数量
+  downCount: number;      // 下跌股票数量
+  limitUp: number;        // 涨停数量
+  limitDown: number;      // 跌停数量
+  distribution: number[]; // 10个区间的股票数量分布
 }
 
 /** 板块轮动数据 */

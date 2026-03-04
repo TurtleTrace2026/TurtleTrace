@@ -294,7 +294,7 @@ function App() {
         <div className="p-4 border-t text-xs text-muted-foreground">
           <div className="flex items-center justify-center gap-1">
             <span>龟迹复盘</span>
-            <span className="text-muted">v2.0</span>
+            <span>v1.0</span>
           </div>
         </div>
       </aside>

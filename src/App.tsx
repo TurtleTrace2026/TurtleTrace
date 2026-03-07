@@ -361,6 +361,8 @@ function App() {
             <ReviewTab
               currentAccountId={currentAccountId}
               accounts={accounts}
+              positions={positions}
+              profitSummary={summary}
             />
           )}
 

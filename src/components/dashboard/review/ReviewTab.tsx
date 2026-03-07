@@ -10,6 +10,7 @@ import { weeklyReviewService } from '../../../services/weeklyReviewService';
 import type { DailyReview } from '../../../types/review';
 import type { WeeklyReview } from '../../../types/weeklyReview';
 import type { Account } from '../../../types/account';
+import type { Position, ProfitSummary } from '../../../types';
 import { getCurrentWeekLabel } from '../../../types/weeklyReview';
 
 type ReviewType = 'daily' | 'weekly';
@@ -18,9 +19,11 @@ type ViewMode = 'edit' | 'view';
 interface ReviewTabProps {
   currentAccountId?: string | null;
   accounts?: Account[];
+  positions?: Position[];
+  profitSummary?: ProfitSummary;
 }
 
-export function ReviewTab({ currentAccountId, accounts }: ReviewTabProps) {
+export function ReviewTab({ currentAccountId, accounts, positions = [], profitSummary }: ReviewTabProps) {
   const [reviewType, setReviewType] = useState<ReviewType>('daily');
   const [viewMode, setViewMode] = useState<ViewMode>('view');
   const [selectedDate, setSelectedDate] = useState(() => {
@@ -206,7 +209,11 @@ export function ReviewTab({ currentAccountId, accounts }: ReviewTabProps) {
             onSave={handleSave}
           />
         ) : (
-          <ReviewViewer onEditDate={handleEditDate} />
+          <ReviewViewer
+            onEditDate={handleEditDate}
+            positions={positions}
+            profitSummary={profitSummary}
+          />
         )
       ) : (
         viewMode === 'edit' ? (

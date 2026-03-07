@@ -1,3 +1,9 @@
+// 导出分享相关类型
+export * from './share'
+
+// 导出周复盘类型
+export * from './weeklyReview'
+
 // 交易类型
 export type TransactionType = 'buy' | 'sell'
 

@@ -1,20 +1,24 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Trash2, Download, Edit, Share2, FileText, TrendingUp, TrendingDown, Minus, Sparkles, Loader2 } from 'lucide-react';
+import { Calendar, Trash2, Download, Edit, Share2, FileText, TrendingUp, TrendingDown, Minus, Sparkles, Loader2, Image } from 'lucide-react';
 import { Card } from '../../ui/card';
 import { Badge } from '../../ui/badge';
 import { Button } from '../../ui/button';
 import { reviewService } from '../../../services/reviewService';
 import type { DailyReview } from '../../../types/review';
+import type { Position, ProfitSummary } from '../../../types';
 import { ReviewCalendar } from './ReviewCalendar';
 import { ReviewShareDialog } from './ReviewShareDialog';
 import { DailyReviewAnalysisDialog } from './DailyReviewAnalysisDialog';
+import { EnhancedShareDialog } from '../../share';
 import { cn } from '../../../lib/utils';
 
 interface ReviewViewerProps {
   onEditDate: (date: string) => void;
+  positions?: Position[];
+  profitSummary?: ProfitSummary;
 }
 
-export function ReviewViewer({ onEditDate }: ReviewViewerProps) {
+export function ReviewViewer({ onEditDate, positions = [], profitSummary }: ReviewViewerProps) {
   const [reviews, setReviews] = useState<DailyReview[]>([]);
   const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date();
@@ -24,6 +28,7 @@ export function ReviewViewer({ onEditDate }: ReviewViewerProps) {
   const [showCalendar, setShowCalendar] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [shareReview, setShareReview] = useState<DailyReview | null>(null);
+  const [enhancedShareOpen, setEnhancedShareOpen] = useState(false);
   const [analysisReview, setAnalysisReview] = useState<DailyReview | null>(null);
 
   // 加载所有复盘记录
@@ -226,6 +231,14 @@ export function ReviewViewer({ onEditDate }: ReviewViewerProps) {
                   >
                     <Share2 className="w-4 h-4" />
                     <span className="hidden sm:inline">分享</span>
+                  </button>
+                  <button
+                    onClick={() => setEnhancedShareOpen(true)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-primary/10 transition-colors text-sm text-primary"
+                    title="生成分享图片"
+                  >
+                    <Image className="w-4 h-4" />
+                    <span className="hidden sm:inline">图片分享</span>
                   </button>
                   <button
                     onClick={() => onEditDate(selectedReview.date)}
@@ -531,6 +544,15 @@ export function ReviewViewer({ onEditDate }: ReviewViewerProps) {
           onClose={() => setAnalysisReview(null)}
         />
       )}
+
+      {/* 增强版分享弹窗 */}
+      <EnhancedShareDialog
+        isOpen={enhancedShareOpen}
+        onClose={() => setEnhancedShareOpen(false)}
+        dailyReview={selectedReview || undefined}
+        positions={positions}
+        profitSummary={profitSummary}
+      />
     </div>
   );
 }

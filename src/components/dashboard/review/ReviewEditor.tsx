@@ -4,11 +4,14 @@ import { Card } from '../../ui/card';
 import { Badge } from '../../ui/badge';
 import { reviewService } from '../../../services/reviewService';
 import type { DailyReview } from '../../../types/review';
+import type { MarketEvent } from '../../../types/event';
 import { ReviewCalendar } from './ReviewCalendar';
 import { MarketDataSection } from './sections/MarketDataSection';
 import { PositionSection } from './sections/PositionSection';
 import { OperationsSection } from './sections/OperationsSection';
 import { SummarySection } from './sections/SummarySection';
+import { TodayEvents } from '../eventCalendar/TodayEvents';
+import { EventEditor } from '../eventCalendar/EventEditor';
 import { cn } from '../../../lib/utils';
 
 interface ReviewEditorProps {
@@ -34,6 +37,10 @@ export function ReviewEditor({ date, existingReview, onSave }: ReviewEditorProps
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
   const [allReviews, setAllReviews] = useState<DailyReview[]>([]);
+
+  // 事件编辑器状态
+  const [showEventEditor, setShowEventEditor] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<MarketEvent | null>(null);
 
   // 加载所有复盘记录
   useEffect(() => {
@@ -186,6 +193,19 @@ export function ReviewEditor({ date, existingReview, onSave }: ReviewEditorProps
 
       {/* 复盘板块 */}
       <div className="space-y-4">
+        {/* 今日事件 */}
+        <TodayEvents
+          date={currentDate}
+          onEventClick={(event) => {
+            setEditingEvent(event);
+            setShowEventEditor(true);
+          }}
+          onAddEvent={() => {
+            setEditingEvent(null);
+            setShowEventEditor(true);
+          }}
+        />
+
         {/* 1️⃣ 大盘指数与关键数据 */}
         <MarketDataSection
           data={review.marketData}
@@ -224,6 +244,26 @@ export function ReviewEditor({ date, existingReview, onSave }: ReviewEditorProps
           {isSaving ? '保存中...' : '保存复盘'}
         </button>
       </div>
+
+      {/* 事件编辑器弹窗 */}
+      {showEventEditor && (
+        <EventEditor
+          event={editingEvent}
+          defaultDate={currentDate}
+          onSave={() => {
+            setShowEventEditor(false);
+            setEditingEvent(null);
+          }}
+          onCancel={() => {
+            setShowEventEditor(false);
+            setEditingEvent(null);
+          }}
+          onDelete={editingEvent ? () => {
+            setShowEventEditor(false);
+            setEditingEvent(null);
+          } : undefined}
+        />
+      )}
     </div>
   );
 }

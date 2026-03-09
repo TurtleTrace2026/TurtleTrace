@@ -1,10 +1,13 @@
 import type { Position, ProfitSummary, ExportData } from '../types'
 import type { DailyReview } from '../types/review'
+import type { MarketEvent } from '../types/event'
 import { reviewService } from './reviewService'
+import { eventService } from './eventService'
 
-// 扩展导出数据类型以包含复盘
+// 扩展导出数据类型以包含复盘和事件
 export interface ExtendedExportData extends ExportData {
   reviews?: DailyReview[]
+  events?: MarketEvent[]
 }
 
 // 导出为 CSV
@@ -76,17 +79,20 @@ export function exportToJSON(positions: Position[], summary: ProfitSummary): voi
   downloadFile(jsonContent, `持仓备份_${getDateString()}.json`, 'application/json')
 }
 
-// 导出完整数据（包含持仓和复盘）
+// 导出完整数据（包含持仓、复盘和事件）
 export async function exportCompleteData(positions: Position[], summary: ProfitSummary): Promise<void> {
   // 获取所有复盘记录
   const reviews = await reviewService.getAllReviews()
+  // 获取所有事件
+  const events = await eventService.getAllEvents()
 
   const data: ExtendedExportData = {
-    version: '2.0.0',
+    version: '3.0.0',
     exportTime: Date.now(),
     positions,
     summary,
     reviews,
+    events,
   }
 
   const jsonContent = JSON.stringify(data, null, 2)
@@ -146,11 +152,32 @@ export async function exportReviewsToMarkdown(): Promise<void> {
   downloadFile(markdownContent, `龟迹复盘_每日复盘_${getDateString()}.md`, 'text/markdown;charset=utf-8')
 }
 
+// 导出事件数据（单独）
+export async function exportEventsData(): Promise<void> {
+  const events = await eventService.getAllEvents()
+
+  if (events.length === 0) {
+    alert('暂无事件数据可导出')
+    return
+  }
+
+  const data = {
+    version: '1.0.0',
+    exportTime: Date.now(),
+    events,
+  }
+
+  const jsonContent = JSON.stringify(data, null, 2)
+
+  downloadFile(jsonContent, `消息日历_${getDateString()}.json`, 'application/json')
+}
+
 // 从 JSON 导入数据
 export function importFromJSON(jsonContent: string): {
   positions: Position[]
   summary?: ProfitSummary
   reviews?: DailyReview[]
+  events?: MarketEvent[]
 } | null {
   try {
     const data = JSON.parse(jsonContent) as ExportData | ExtendedExportData
@@ -164,6 +191,7 @@ export function importFromJSON(jsonContent: string): {
       positions: Position[]
       summary?: ProfitSummary
       reviews?: DailyReview[]
+      events?: MarketEvent[]
     } = {
       positions: data.positions,
       summary: data.summary,
@@ -172,6 +200,11 @@ export function importFromJSON(jsonContent: string): {
     // 如果有复盘数据，也返回
     if ('reviews' in data && Array.isArray(data.reviews)) {
       result.reviews = data.reviews
+    }
+
+    // 如果有事件数据，也返回
+    if ('events' in data && Array.isArray(data.events)) {
+      result.events = data.events
     }
 
     return result
@@ -208,6 +241,37 @@ export async function saveImportedReviews(reviews: DailyReview[]): Promise<boole
     return true
   } catch (error) {
     console.error('Failed to save reviews:', error)
+    return false
+  }
+}
+
+// 导入事件数据（单独）
+export function importEventsData(jsonContent: string): MarketEvent[] | null {
+  try {
+    const data = JSON.parse(jsonContent) as {
+      events?: MarketEvent[]
+    }
+
+    if (!data.events || !Array.isArray(data.events)) {
+      throw new Error('Invalid events data format')
+    }
+
+    return data.events
+  } catch (error) {
+    console.error('Failed to import events:', error)
+    return null
+  }
+}
+
+// 保存导入的事件数据到 localStorage
+export async function saveImportedEvents(events: MarketEvent[]): Promise<boolean> {
+  try {
+    for (const event of events) {
+      await eventService.saveEvent(event)
+    }
+    return true
+  } catch (error) {
+    console.error('Failed to save events:', error)
     return false
   }
 }

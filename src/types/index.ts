@@ -4,6 +4,9 @@ export * from './share'
 // 导出周复盘类型
 export * from './weeklyReview'
 
+// 导出事件日历类型
+export * from './event'
+
 // 交易类型
 export type TransactionType = 'buy' | 'sell'
 

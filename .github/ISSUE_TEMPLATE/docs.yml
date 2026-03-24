@@ -1,0 +1,51 @@
+name: 文档问题
+description: 报告文档错误或请求文档改进
+title: "[Docs]: "
+labels: ["documentation"]
+assignees: []
+body:
+  - type: dropdown
+    id: type
+    attributes:
+      label: 问题类型
+      options:
+        - 文档错误/拼写错误
+        - 文档不完整
+        - 文档不清楚
+        - 缺少文档
+        - 请求新文档
+    validations:
+      required: true
+
+  - type: input
+    id: location
+    attributes:
+      label: 文档位置
+      description: 问题出现在哪个文档？
+      placeholder: 例如：README.md 或 docs/API.md
+    validations:
+      required: true
+
+  - type: textarea
+    id: current
+    attributes:
+      label: 当前内容
+      description: 当前的文档内容（如有）
+      placeholder: 复制粘贴当前的文档内容
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: 建议修改
+      description: 您建议如何修改？
+      placeholder: 请提供修改建议或正确的内容
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: 检查清单
+      options:
+        - label: 我愿意提交 PR 来修复这个文档问题
+          required: false

@@ -1,96 +1,161 @@
-import type { StockQuote } from '../types'
+/**
+ * 股票服务 - 兼容层
+ * 保持与原有 API 不变，内部使用新的数据源抽象层
+ * @deprecated 请直接使用 stockDataService
+ */
 
-// 东方财富API返回的数据类型
-interface EastMoneyResponse {
-  data: {
-    f43: number  // 最新价
-    f44: number  // 最高价
-    f45: number  // 最低价
-    f46: number  // 开盘价
-    f58: string  // 股票名称
-    f60?: number // 昨收价（用于计算涨跌幅）
-  } | null
-}
+import type { StockQuote, NewsItem } from '../types'
+import { stockDataService } from './stockDataService'
+import { searchStocks } from './stockDatabase'
 
-// 将股票代码转换为东方财富API的secid格式
-// 深圳股票(SZ): 0.{code}
-// 上海股票(SH): 1.{code}
-function convertSymbolToSecId(symbol: string): string {
-  // 支持两种格式: 600519.SH 或 SH.600519
-  let code = symbol
-  let market = ''
+// 初始化标记
+let providersInitialized = false
 
-  if (symbol.includes('.')) {
-    const [symbolCode, suffix] = symbol.split('.')
-    code = symbolCode
-    market = suffix
-  } else if (symbol.includes('SH') || symbol.includes('SZ')) {
-    const parts = symbol.split(/(SH|SZ)/)
-    code = parts[1]
-    market = parts[0]
+/** 确保初始化数据源 */
+async function ensureProvidersInitialized(): Promise<void> {
+  if (!providersInitialized) {
+    await stockDataService.initialize()
+    providersInitialized = true
   }
-
-  // 上海股票: 前缀1, 深圳股票: 前缀0
-  const marketPrefix = market === 'SH' ? '1' : '0'
-  return `${marketPrefix}.${code}`
 }
 
-// 从东方财富API获取股票实时行情
+// ============ 股票行情 API ============
+
+/**
+ * 获取单个股票行情
+ * @deprecated 请使用 stockDataService.getQuote()
+ */
 export async function getStockQuote(symbol: string): Promise<StockQuote | null> {
+  await ensureProvidersInitialized()
+
   try {
-    const secId = convertSymbolToSecId(symbol)
-    const url = `https://push2.eastmoney.com/api/qt/stock/get?fltt=2&invt=2&secid=${secId}&fields=f43,f44,f45,f46,f58,f60`
-
-    const response = await fetch(url)
-    if (!response.ok) {
-      return null
-    }
-
-    const result: EastMoneyResponse = await response.json()
-
-    if (!result.data || !result.data.f58) {
-      return null
-    }
-
-    const { f43: price, f44: high, f45: low, f46: open, f58: name, f60: prevClose } = result.data
-
-    // 计算涨跌幅
-    const change = prevClose ? price - prevClose : 0
-    const changePercent = prevClose ? (change / prevClose) * 100 : 0
-
-    return {
-      symbol,
-      name,
-      price: Number(price.toFixed(2)),
-      change: Number(change.toFixed(2)),
-      changePercent: Number(changePercent.toFixed(2)),
-      open: Number(open.toFixed(2)),
-      high: Number(high.toFixed(2)),
-      low: Number(low.toFixed(2)),
-      volume: 0, // API未返回成交量数据
-      timestamp: Date.now(),
-    }
+    const quote = await stockDataService.getQuote(symbol)
+    return quote
   } catch (error) {
     console.error(`获取股票 ${symbol} 行情失败:`, error)
     return null
   }
 }
 
-// 批量获取股票行情
+/**
+ * 批量获取股票行情
+ * @deprecated 请使用 stockDataService.getQuotes()
+ */
 export async function getStockQuotes(symbols: string[]): Promise<StockQuote[]> {
-  const quotes = await Promise.all(
-    symbols.map(symbol => getStockQuote(symbol))
-  )
-  return quotes.filter((q): q is StockQuote => q !== null)
+  await ensureProvidersInitialized()
+
+  if (symbols.length === 0) return []
+
+  try {
+    return await stockDataService.getQuotes(symbols)
+  } catch (error) {
+    console.error('批量获取股票行情失败:', error)
+    return []
+  }
 }
 
-// 根据代码获取股票名称（需要调用API）
+/**
+ * 根据代码获取股票名称
+ * @deprecated 请使用 stockDatabase.getStockName()
+ */
 export async function getStockName(symbol: string): Promise<string | null> {
+  // 优先使用本地数据库
+  const localName = getStockNameFromLocal(symbol)
+  if (localName) return localName
+
+  // 降级到 API 获取
   const quote = await getStockQuote(symbol)
   return quote?.name || null
 }
 
-// 获取支持的股票列表（已废弃，请使用stockDatabase中的数据）
+/**
+ * 从本地数据库获取股票名称
+ */
+function getStockNameFromLocal(symbol: string): string | null {
+  try {
+    // 提取代码部分
+    const code = symbol.split('.')[0]
+    const stocks = searchStocks(code, 1)
+    if (stocks.length > 0 && stocks[0].ts_code === symbol) {
+      return stocks[0].name
+    }
+  } catch {
+    // 忽略错误
+  }
+  return null
+}
+
+/**
+ * 获取支持的股票列表
+ * @deprecated 请使用 stockDatabase
+ */
 export function getSupportedStocks(): Array<{ symbol: string; name: string }> {
   return []
+}
+
+// ============ 新闻 API ============
+
+/**
+ * 获取市场新闻
+ * @deprecated 请使用 stockDataService.getNews()
+ */
+export async function getMarketNews(): Promise<NewsItem[]> {
+  await ensureProvidersInitialized()
+
+  try {
+    const news = await stockDataService.getNews()
+    // 转换为 NewsItem 格式
+    return news.map(item => ({
+      id: item.id,
+      title: item.title,
+      source: item.source,
+      url: item.url,
+      publishTime: item.publishTime,
+      summary: item.summary,
+      relatedSymbols: item.relatedSymbols,
+    }))
+  } catch (error) {
+    console.error('获取市场新闻失败:', error)
+    return []
+  }
+}
+
+/**
+ * 获取股票相关新闻
+ * @deprecated 请使用 stockDataService.getNews(symbols)
+ */
+export async function getStockNews(symbols: string[]): Promise<NewsItem[]> {
+  await ensureProvidersInitialized()
+
+  try {
+    const news = await stockDataService.getNews(symbols)
+    return news.map(item => ({
+      id: item.id,
+      title: item.title,
+      source: item.source,
+      url: item.url,
+      publishTime: item.publishTime,
+      summary: item.summary,
+      relatedSymbols: item.relatedSymbols,
+    }))
+  } catch (error) {
+    console.error('获取股票新闻失败:', error)
+    return []
+  }
+}
+
+/**
+ * 格式化新闻内容，移除HTML标签
+ */
+export function formatNewsContent(content: string): string {
+  if (!content) return ''
+  return content
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/\s+/g, ' ')
+    .trim()
 }

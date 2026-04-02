@@ -17,18 +17,24 @@ import type {
 interface EastMoneyBatchResponse {
   rc: number
   rt: number
-  data: {
-    f43: number
-    f44: number
-    f45: number
-    f46: number
-    f47: number
-    f48: number
-    f58: string
-    f60: number
-    f169: number
-    f170: number
-  }[]
+  svr?: number
+  lt?: number
+  full?: number
+  data?: {
+    total?: number
+    diff?: {
+      f43: number
+      f44: number
+      f45: number
+      f46: number
+      f47: number
+      f48: number
+      f58: string
+      f60: number
+      f169: number
+      f170: number
+    }[]
+  }
 }
 
 /** 东方财富搜索响应 */
@@ -85,11 +91,12 @@ export class EastMoneyProvider implements StockDataProvider {
 
       const data: EastMoneyBatchResponse = await response.json()
 
-      if (!data.data || data.data.length === 0) {
+      const diff = data.data?.diff
+      if (!diff || diff.length === 0) {
         return []
       }
 
-      return data.data.map((item, index) => {
+      return diff.map((item, index) => {
         const price = item.f43 / 100
         const change = item.f169 / 100
         const changePercent = item.f170 / 100
@@ -240,9 +247,10 @@ export class EastMoneyProvider implements StockDataProvider {
 
       const data = await response.json()
 
-      if (!data.data) return []
+      const diff = data.data?.diff
+      if (!diff || diff.length === 0) return []
 
-      return data.data.map((item: any, index: number) => ({
+      return diff.map((item: any, index: number) => ({
         symbol: indices[index].symbol,
         name: indices[index].name,
         price: Number((item.f43 / 100).toFixed(2)),

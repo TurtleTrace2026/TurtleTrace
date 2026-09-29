@@ -18,20 +18,62 @@ function generateId(): string {
 // 获取存储数据
 function getStorage(): AccountsStorage {
   const saved = localStorage.getItem(STORAGE_KEY)
+  let data: AccountsStorage | null = null
   if (saved) {
     try {
-      const data = JSON.parse(saved) as AccountsStorage
+      data = JSON.parse(saved) as AccountsStorage
       // 版本迁移
       if (data.version < CURRENT_VERSION) {
-        return migrateData(data)
+        data = migrateData(data)
       }
-      return data
     } catch (e) {
       console.error('Failed to parse accounts storage:', e)
     }
   }
-  // 返回默认存储结构
-  return createDefaultStorage()
+  if (!data) {
+    // 返回默认存储结构并立即落盘：否则每次刷新都会生成新的临时账户ID，
+    // 已保存的持仓记录会因账户ID对不上而"消失"
+    data = createDefaultStorage()
+    saveStorage(data)
+  }
+  repairOrphanedPositions(data)
+  return data
+}
+
+// 修复历史 bug 产生的孤儿持仓：账户表里不存在的持仓重新挂到默认账户，
+// 否则这些记录会在页面上"消失"（保存了但按账户ID过滤不到）。
+// 同时合并重复持仓：同一账户下同一股票代码只保留一条（历史 bug 或重复导入
+// 可能产生重复卡片），保留最先记录的一条。
+function repairOrphanedPositions(data: AccountsStorage): void {
+  const saved = localStorage.getItem('stock-positions')
+  if (!saved) return
+  let positions: Position[]
+  try {
+    positions = JSON.parse(saved) as Position[]
+  } catch {
+    return
+  }
+  const accountIds = new Set(data.accounts.map(a => a.id))
+  let changed = false
+  for (const p of positions) {
+    if (p.accountId && !accountIds.has(p.accountId)) {
+      p.accountId = data.defaultAccountId
+      changed = true
+    }
+  }
+  const seen = new Set<string>()
+  const deduped = positions.filter(p => {
+    const key = `${p.accountId || ''}|${(p.symbol || '').toUpperCase()}`
+    if (seen.has(key)) {
+      changed = true
+      return false
+    }
+    seen.add(key)
+    return true
+  })
+  if (changed) {
+    localStorage.setItem('stock-positions', JSON.stringify(deduped))
+  }
 }
 
 // 创建默认存储结构

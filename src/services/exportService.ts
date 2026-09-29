@@ -187,13 +187,25 @@ export function importFromJSON(jsonContent: string): {
       throw new Error('Invalid data format')
     }
 
+    // 去重：本地已存在同代码持仓的，导入时跳过，避免备份导入产生重复卡片
+    let existing: Position[] = []
+    try {
+      existing = JSON.parse(localStorage.getItem('stock-positions') || '[]') as Position[]
+    } catch {
+      existing = []
+    }
+    const existingSymbols = new Set(existing.map(p => (p.symbol || '').toUpperCase()))
+    const incoming = data.positions.filter(
+      p => !existingSymbols.has((p.symbol || '').toUpperCase())
+    )
+
     const result: {
       positions: Position[]
       summary?: ProfitSummary
       reviews?: DailyReview[]
       events?: MarketEvent[]
     } = {
-      positions: data.positions,
+      positions: incoming,
       summary: data.summary,
     }
 
